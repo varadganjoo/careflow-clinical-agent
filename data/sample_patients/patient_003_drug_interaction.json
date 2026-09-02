@@ -1,0 +1,84 @@
+{
+  "resourceType": "Bundle",
+  "id": "bundle-003",
+  "patient": {
+    "resourceType": "Patient",
+    "id": "pat-003",
+    "mrn": "MRN-63109",
+    "name": "Robert Chen",
+    "birthDate": "1974-08-05",
+    "gender": "male",
+    "telecom": "555-321-9876",
+    "address": "1200 Grand Avenue, Austin, TX"
+  },
+  "observations": [
+    {
+      "resourceType": "Observation",
+      "id": "obs-201",
+      "status": "final",
+      "category": "vital-signs",
+      "code": "8480-6",
+      "display": "Systolic Blood Pressure",
+      "value": 142.0,
+      "unit": "mmHg",
+      "reference_range": "< 120 mmHg",
+      "effectiveDateTime": "2026-09-21T14:20:00Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "obs-202",
+      "status": "final",
+      "category": "vital-signs",
+      "code": "8462-4",
+      "display": "Diastolic Blood Pressure",
+      "value": 88.0,
+      "unit": "mmHg",
+      "reference_range": "< 80 mmHg",
+      "effectiveDateTime": "2026-09-21T14:20:00Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "obs-203",
+      "status": "final",
+      "category": "laboratory",
+      "code": "2823-3",
+      "display": "Potassium",
+      "value": 5.6,
+      "unit": "mEq/L",
+      "reference_range": "3.5 - 5.0 mEq/L",
+      "effectiveDateTime": "2026-09-21T14:00:00Z"
+    }
+  ],
+  "conditions": [
+    {
+      "resourceType": "Condition",
+      "id": "cond-201",
+      "clinicalStatus": "active",
+      "code": {
+        "code": "I10",
+        "system": "http://hl7.org/fhir/sid/icd-10-cm",
+        "display": "Essential (primary) hypertension"
+      },
+      "onsetDateTime": "2021-09-12"
+    }
+  ],
+  "medications": [
+    {
+      "resourceType": "MedicationRequest",
+      "id": "med-201",
+      "status": "active",
+      "medication": "Lisinopril 20mg oral daily",
+      "dosage": "20mg daily",
+      "authoredOn": "2023-01-10"
+    },
+    {
+      "resourceType": "MedicationRequest",
+      "id": "med-202",
+      "status": "active",
+      "medication": "Losartan 50mg oral daily",
+      "dosage": "50mg daily",
+      "authoredOn": "2026-09-15"
+    }
+  ],
+  "allergies": []
+}

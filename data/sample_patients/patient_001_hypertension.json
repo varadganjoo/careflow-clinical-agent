@@ -1,0 +1,96 @@
+{
+  "resourceType": "Bundle",
+  "id": "bundle-001",
+  "patient": {
+    "resourceType": "Patient",
+    "id": "pat-001",
+    "mrn": "MRN-92841",
+    "name": "Eleanor Vance",
+    "birthDate": "1968-04-12",
+    "gender": "female",
+    "telecom": "555-234-5678",
+    "address": "742 Evergreen Terrace, Springfield, IL"
+  },
+  "observations": [
+    {
+      "resourceType": "Observation",
+      "id": "obs-001",
+      "status": "final",
+      "category": "vital-signs",
+      "code": "8480-6",
+      "display": "Systolic Blood Pressure",
+      "value": 154.0,
+      "unit": "mmHg",
+      "reference_range": "< 120 mmHg",
+      "effectiveDateTime": "2026-09-20T09:30:00Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "obs-002",
+      "status": "final",
+      "category": "vital-signs",
+      "code": "8462-4",
+      "display": "Diastolic Blood Pressure",
+      "value": 96.0,
+      "unit": "mmHg",
+      "reference_range": "< 80 mmHg",
+      "effectiveDateTime": "2026-09-20T09:30:00Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "obs-003",
+      "status": "final",
+      "category": "laboratory",
+      "code": "33914-3",
+      "display": "Estimated GFR (eGFR)",
+      "value": 78.0,
+      "unit": "mL/min/1.73m2",
+      "reference_range": "> 60 mL/min",
+      "effectiveDateTime": "2026-09-18T11:00:00Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "obs-004",
+      "status": "final",
+      "category": "laboratory",
+      "code": "2823-3",
+      "display": "Potassium",
+      "value": 4.2,
+      "unit": "mEq/L",
+      "reference_range": "3.5 - 5.0 mEq/L",
+      "effectiveDateTime": "2026-09-18T11:00:00Z"
+    }
+  ],
+  "conditions": [
+    {
+      "resourceType": "Condition",
+      "id": "cond-001",
+      "clinicalStatus": "active",
+      "code": {
+        "code": "I10",
+        "system": "http://hl7.org/fhir/sid/icd-10-cm",
+        "display": "Essential (primary) hypertension"
+      },
+      "onsetDateTime": "2022-01-15"
+    }
+  ],
+  "medications": [
+    {
+      "resourceType": "MedicationRequest",
+      "id": "med-001",
+      "status": "active",
+      "medication": "Hydrochlorothiazide 25mg oral daily",
+      "dosage": "25mg daily",
+      "authoredOn": "2024-02-10"
+    }
+  ],
+  "allergies": [
+    {
+      "resourceType": "AllergyIntolerance",
+      "id": "alg-001",
+      "substance": "Sulfa drugs",
+      "reaction": "Mild maculopapular rash",
+      "severity": "mild"
+    }
+  ]
+}

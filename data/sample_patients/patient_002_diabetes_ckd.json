@@ -1,0 +1,99 @@
+{
+  "resourceType": "Bundle",
+  "id": "bundle-002",
+  "patient": {
+    "resourceType": "Patient",
+    "id": "pat-002",
+    "mrn": "MRN-48192",
+    "name": "Marcus Holloway",
+    "birthDate": "1959-11-23",
+    "gender": "male",
+    "telecom": "555-876-5432",
+    "address": "452 Market Street, San Francisco, CA"
+  },
+  "observations": [
+    {
+      "resourceType": "Observation",
+      "id": "obs-101",
+      "status": "final",
+      "category": "laboratory",
+      "code": "4548-4",
+      "display": "Hemoglobin A1c (HbA1c)",
+      "value": 8.4,
+      "unit": "%",
+      "reference_range": "< 5.7%",
+      "effectiveDateTime": "2026-09-19T08:15:00Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "obs-102",
+      "status": "final",
+      "category": "laboratory",
+      "code": "33914-3",
+      "display": "Estimated GFR (eGFR)",
+      "value": 26.0,
+      "unit": "mL/min/1.73m2",
+      "reference_range": "> 60 mL/min",
+      "effectiveDateTime": "2026-09-19T08:15:00Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "obs-103",
+      "status": "final",
+      "category": "vital-signs",
+      "code": "8480-6",
+      "display": "Systolic Blood Pressure",
+      "value": 138.0,
+      "unit": "mmHg",
+      "reference_range": "< 120 mmHg",
+      "effectiveDateTime": "2026-09-20T10:00:00Z"
+    },
+    {
+      "resourceType": "Observation",
+      "id": "obs-104",
+      "status": "final",
+      "category": "vital-signs",
+      "code": "8462-4",
+      "display": "Diastolic Blood Pressure",
+      "value": 84.0,
+      "unit": "mmHg",
+      "reference_range": "< 80 mmHg",
+      "effectiveDateTime": "2026-09-20T10:00:00Z"
+    }
+  ],
+  "conditions": [
+    {
+      "resourceType": "Condition",
+      "id": "cond-101",
+      "clinicalStatus": "active",
+      "code": {
+        "code": "E11.9",
+        "system": "http://hl7.org/fhir/sid/icd-10-cm",
+        "display": "Type 2 diabetes mellitus without complications"
+      },
+      "onsetDateTime": "2018-06-10"
+    },
+    {
+      "resourceType": "Condition",
+      "id": "cond-102",
+      "clinicalStatus": "active",
+      "code": {
+        "code": "N18.4",
+        "system": "http://hl7.org/fhir/sid/icd-10-cm",
+        "display": "Chronic kidney disease, stage 4"
+      },
+      "onsetDateTime": "2024-03-01"
+    }
+  ],
+  "medications": [
+    {
+      "resourceType": "MedicationRequest",
+      "id": "med-101",
+      "status": "active",
+      "medication": "Metformin 1000mg oral twice daily",
+      "dosage": "1000mg BID",
+      "authoredOn": "2020-05-15"
+    }
+  ],
+  "allergies": []
+}
