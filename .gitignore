@@ -1,0 +1,25 @@
+# Python environment
+.venv/
+env/
+venv/
+
+# Secrets
+.env
+.env.local
+!.env.example
+
+# Byte-compiled files
+__pycache__/
+*.py[cod]
+
+# Testing & Cache
+.pytest_cache/
+.coverage
+htmlcov/
+*.db
+*.sqlite
+data/checkpoints/
+
+# OS metadata
+.DS_Store
+Thumbs.db
