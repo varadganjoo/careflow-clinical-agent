@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CareFlow EHR — Clinical Decision Support & Scribe Platform</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            clinical: {
+              bg: '#F8FAFC',
+              sidebar: '#FFFFFF',
+              surface: '#FFFFFF',
+              border: '#E2E8F0',
+              primary: '#0284C7',
+              primaryHover: '#0369A1',
+              teal: '#0D9488',
+              emerald: '#10B981',
+              amber: '#D97706',
+              danger: '#DC2626',
+              text: '#0F172A',
+              muted: '#64748B',
+              subtle: '#94A3B8'
+            }
+          },
+          boxShadow: {
+            card: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
+            cardHover: '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06)'
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background-color: #F8FAFC; color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .mono { font-family: "JetBrains Mono", Consolas, Monaco, monospace; }
+    .markdown-content h3 { font-weight: 700; font-size: 0.9rem; color: #0369A1; margin-top: 1rem; margin-bottom: 0.35rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.25rem; }
+    .markdown-content p { margin-bottom: 0.5rem; line-height: 1.55; }
+    .markdown-content ul { list-style-type: disc; margin-left: 1.25rem; margin-bottom: 0.5rem; }
+    .markdown-content li { margin-bottom: 0.25rem; }
+    .markdown-content strong { color: #0F172A; font-weight: 600; }
+    .markdown-content blockquote { border-left: 3px solid #0284C7; padding-left: 0.75rem; margin: 0.5rem 0; color: #475569; background: #F0F9FF; }
+    .cursor-blink::after { content: '▋'; animation: blink 1s infinite; color: #0284C7; }
+    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+  </style>
+</head>
+<body class="min-h-screen flex bg-clinical-bg text-clinical-text">
+
+  <!-- LEFT CLINICAL SIDEBAR -->
+  <aside class="w-72 bg-white border-r border-clinical-border flex flex-col justify-between shrink-0 h-screen sticky top-0 shadow-sm">
+    <div>
+      <!-- Hospital Brand -->
+      <div class="px-6 py-5 border-b border-clinical-border flex items-center space-x-3">
+        <div class="h-10 w-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 font-black text-xl shadow-sm">
+          <i class="fa-solid fa-hospital"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-sm tracking-tight text-slate-900">CareFlow <span class="text-sky-600 font-bold">EHR</span></h1>
+          <p class="text-[11px] font-medium text-slate-500">St. Jude Health System</p>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <div class="p-4">
+        <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 mb-2">Clinical Workstation</p>
+        <nav class="space-y-1">
+          <button onclick="switchTab('chart')" id="tab_chart" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition bg-sky-50 text-sky-700 border border-sky-200 shadow-sm">
+            <i class="fa-solid fa-id-card text-sky-600 w-4"></i>
+            <span>Patient Chart & Vitals</span>
+          </button>
+          <button onclick="switchTab('scribe')" id="tab_scribe" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <i class="fa-solid fa-file-waveform text-slate-400 w-4"></i>
+            <span>Ambient SOAP Scribe</span>
+          </button>
+          <button onclick="switchTab('safety')" id="tab_safety" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <i class="fa-solid fa-shield-halved text-slate-400 w-4"></i>
+            <span>Drug Safety & Guardrails</span>
+          </button>
+          <button onclick="switchTab('guidelines')" id="tab_guidelines" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <i class="fa-solid fa-book-medical text-slate-400 w-4"></i>
+            <span>Clinical Guidelines</span>
+          </button>
+          <button onclick="switchTab('review')" id="tab_review" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+            <i class="fa-solid fa-signature text-slate-400 w-4"></i>
+            <span>Physician Sign-Off</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Encounter Selector -->
+      <div class="px-4 py-2 border-t border-clinical-border">
+        <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 mb-2">Today's Encounters</p>
+        <div class="space-y-1.5" id="patientList">
+          <div onclick="selectScenario('hypertension')" id="btn_hypertension" class="p-2.5 rounded-lg border border-sky-300 bg-sky-50/50 cursor-pointer transition hover:border-sky-400">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-xs text-slate-900">Eleanor Vance</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">HTN Stage 2</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">62F • BP 154/96 • Room 304</p>
+          </div>
+
+          <div onclick="selectScenario('dual_ras')" id="btn_dual_ras" class="p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-xs text-slate-900">Robert Chen</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">Safety Alert</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">58M • Lisinopril+Losartan</p>
+          </div>
+
+          <div onclick="selectScenario('ckd')" id="btn_ckd" class="p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300">
+            <div class="flex justify-between items-center">
+              <span class="font-bold text-xs text-slate-900">Marcus Holloway</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">T2D + CKD</span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">71M • eGFR 26 mL/min</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attending Physician Profile Card -->
+    <div class="p-4 border-t border-clinical-border bg-slate-50/70">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded-full bg-sky-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
+          SL
+        </div>
+        <div class="overflow-hidden">
+          <p class="text-xs font-bold text-slate-900 truncate">Dr. Sarah Lin, MD</p>
+          <p class="text-[11px] text-slate-500 truncate">Attending • Cardiology</p>
+        </div>
+      </div>
+      <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 mono">
+        <span class="flex items-center"><span class="h-2 w-2 rounded-full bg-emerald-500 mr-1.5"></span> FHIR v4 OK</span>
+        <span class="text-slate-400">v3.8 Flash</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN WORKSPACE -->
+  <main class="flex-1 flex flex-col overflow-y-auto">
+
+    <!-- Top Patient Demographic Banner -->
+    <header class="bg-white border-b border-clinical-border px-8 py-4 sticky top-0 z-40 shadow-sm flex items-center justify-between">
+      <div class="flex items-center space-x-6">
+        <div>
+          <div class="flex items-center space-x-3">
+            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight" id="patientName">Eleanor Vance</h2>
+            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200" id="patientDemographics">62 yo Female • DOB: 1964-03-12</span>
+            <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200" id="encounterStatus">Encounter In Progress</span>
+          </div>
+          <div class="flex items-center space-x-4 text-xs text-slate-500 mt-1">
+            <span><strong class="text-slate-700">MRN:</strong> <span class="mono" id="patientMRN">MRN-90421</span></span>
+            <span>•</span>
+            <span><strong class="text-slate-700">Allergies:</strong> <span class="text-red-600 font-medium" id="patientAllergies">Penicillin (Severe Urticaria)</span></span>
+            <span>•</span>
+            <span><strong class="text-slate-700">Coverage:</strong> Medicare Advantage</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <div class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs flex items-center space-x-2">
+          <i class="fa-solid fa-lock text-sky-600"></i>
+          <span class="font-medium text-slate-600">HIPAA Safe Harbor 18:</span>
+          <span class="font-bold text-sky-700">VERIFIED</span>
+        </div>
+        <button onclick="runCareflowWorkflow()" class="px-3.5 py-2 rounded-lg bg-sky-600 text-white font-semibold text-xs transition hover:bg-sky-700 shadow-sm flex items-center space-x-2">
+          <i class="fa-solid fa-play text-xs"></i>
+          <span>Re-Evaluate Agent</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Content Workspace -->
+    <div class="p-8 space-y-6">
+
+      <!-- PAGE 1: PATIENT CHART & VITALS -->
+      <section id="page_chart" class="space-y-6">
+        <!-- Vitals Metric Cards -->
+        <div class="grid grid-cols-4 gap-4">
+          <div class="bg-white border border-clinical-border rounded-xl p-4 shadow-card">
+            <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
+              <span class="font-semibold uppercase tracking-wider text-[10px]">Blood Pressure</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800" id="bpStatusBadge">Stage 2 HTN</span>
+            </div>
+            <div class="text-2xl font-black text-slate-900" id="vitalBP">154/96 <span class="text-xs font-normal text-slate-500">mmHg</span></div>
+            <p class="text-[11px] text-slate-400 mt-1">Normal: &lt; 120/80 mmHg</p>
+          </div>
+
+          <div class="bg-white border border-clinical-border rounded-xl p-4 shadow-card">
+            <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
+              <span class="font-semibold uppercase tracking-wider text-[10px]">Heart Rate</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Normal</span>
+            </div>
+            <div class="text-2xl font-black text-slate-900" id="vitalHR">78 <span class="text-xs font-normal text-slate-500">bpm</span></div>
+            <p class="text-[11px] text-slate-400 mt-1">Resting Sinus Rhythm</p>
+          </div>
+
+          <div class="bg-white border border-clinical-border rounded-xl p-4 shadow-card">
+            <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
+              <span class="font-semibold uppercase tracking-wider text-[10px]">eGFR (CKD-EPI)</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800" id="egfrBadge">Preserved</span>
+            </div>
+            <div class="text-2xl font-black text-slate-900" id="vitalEGFR">88 <span class="text-xs font-normal text-slate-500">mL/min</span></div>
+            <p class="text-[11px] text-slate-400 mt-1">Stage 1 Kidney Function</p>
+          </div>
+
+          <div class="bg-white border border-clinical-border rounded-xl p-4 shadow-card">
+            <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
+              <span class="font-semibold uppercase tracking-wider text-[10px]">Hemoglobin A1c</span>
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800" id="hba1cBadge">Target</span>
+            </div>
+            <div class="text-2xl font-black text-slate-900" id="vitalHBA1C">5.6 <span class="text-xs font-normal text-slate-500">%</span></div>
+            <p class="text-[11px] text-slate-400 mt-1">ADA Target: &lt; 7.0%</p>
+          </div>
+        </div>
+
+        <!-- Two Column Clinical Layout -->
+        <div class="grid grid-cols-2 gap-6">
+          <!-- Active Conditions & Diagnoses -->
+          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-clinical-border">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center">
+                <i class="fa-solid fa-notes-medical text-sky-600 mr-2"></i> Active Problem List
+              </h3>
+              <span class="text-[11px] text-slate-400">ICD-10-CM Standard</span>
+            </div>
+            <div class="space-y-2.5" id="problemList">
+              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div>
+                  <p class="font-semibold text-xs text-slate-800">Essential (Primary) Hypertension</p>
+                  <p class="text-[11px] text-slate-500">Onset: 2021 • Stage 2 Uncontrolled</p>
+                </div>
+                <span class="mono px-2 py-0.5 text-xs font-bold rounded bg-slate-200 text-slate-700">I10</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div>
+                  <p class="font-semibold text-xs text-slate-800">Hyperlipidemia, Unspecified</p>
+                  <p class="text-[11px] text-slate-500">Onset: 2019 • On Atorvastatin</p>
+                </div>
+                <span class="mono px-2 py-0.5 text-xs font-bold rounded bg-slate-200 text-slate-700">E78.5</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Active Prescriptions -->
+          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card">
+            <div class="flex items-center justify-between pb-3 mb-3 border-b border-clinical-border">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center">
+                <i class="fa-solid fa-pills text-teal-600 mr-2"></i> Current Medications
+              </h3>
+              <span class="text-[11px] text-slate-400">RxNorm Mapped</span>
+            </div>
+            <div class="space-y-2.5" id="medicationList">
+              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div>
+                  <p class="font-semibold text-xs text-slate-800">Hydrochlorothiazide 25mg Tablet</p>
+                  <p class="text-[11px] text-slate-500">Oral • Once Daily Morning</p>
+                </div>
+                <span class="mono px-2 py-0.5 text-xs font-semibold rounded bg-teal-50 text-teal-700 border border-teal-200">RxNorm: 316049</span>
+              </div>
+              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                <div>
+                  <p class="font-semibold text-xs text-slate-800">Atorvastatin Calcium 20mg Tablet</p>
+                  <p class="text-[11px] text-slate-500">Oral • Once Daily Evening</p>
+                </div>
+                <span class="mono px-2 py-0.5 text-xs font-semibold rounded bg-teal-50 text-teal-700 border border-teal-200">RxNorm: 259255</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 2: AMBIENT SOAP SCRIBE STUDIO -->
+      <section id="page_scribe" class="hidden space-y-6">
+        <div class="grid grid-cols-3 gap-6">
+          <!-- Ambient Audio / Transcript Panel -->
+          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card space-y-3">
+            <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center">
+                <i class="fa-solid fa-microphone text-sky-600 mr-2"></i> Ambient Clinical Audio
+              </h3>
+              <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800">Transcribed</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-96 overflow-y-auto space-y-2" id="scribeTranscript">
+              <p><strong>Dr. Lin:</strong> "Good morning Eleanor. Looking at your home blood pressure logs, we are consistently seeing numbers in the 150s over 90s despite your hydrochlorothiazide."</p>
+              <p><strong>Patient:</strong> "Yes doctor, I've had some mild morning headaches. No chest pain or shortness of breath though."</p>
+              <p><strong>Dr. Lin:</strong> "Understood. Your kidney panel and potassium are completely normal. According to ACC/AHA guidelines, we need to add an ACE inhibitor like Lisinopril 10mg daily."</p>
+            </div>
+          </div>
+
+          <!-- Structured SOAP Note Editor & Live Streaming Studio -->
+          <div class="col-span-2 bg-white border border-clinical-border rounded-xl p-5 shadow-card space-y-4">
+            <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
+              <div>
+                <h3 class="font-bold text-sm text-slate-900 flex items-center">
+                  <i class="fa-solid fa-file-medical text-teal-600 mr-2"></i> Generated Clinical SOAP Note
+                </h3>
+                <p class="text-[11px] text-slate-500">Gemini LLM Scribe • ICD-10 &amp; CPT Grounded</p>
+              </div>
+              <div class="flex items-center space-x-2">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600" id="soapStatusBadge">Ready</span>
+                <button onclick="streamSoapNote()" id="btnStreamSoap" class="px-3.5 py-1.5 rounded-lg bg-sky-600 text-white font-semibold text-xs hover:bg-sky-700 transition flex items-center space-x-1.5 shadow-sm">
+                  <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
+                  <span>Stream Live SOAP</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Streaming Markdown Display -->
+            <div id="renderedSoapNote" class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 markdown-content min-h-64 max-h-[420px] overflow-y-auto">
+              <p class="text-slate-400 italic">Click "Stream Live SOAP" to synthesize ambient conversation and clinical findings into a structured note using Gemini with real-time streaming...</p>
+            </div>
+
+            <!-- Editable Fields for Physician Adjustment -->
+            <div class="space-y-3 text-xs pt-2 border-t border-slate-100" id="structuredFields">
+              <div class="flex justify-between items-center">
+                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Physician Adjustments (Pre-Commit)</span>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="font-bold text-slate-700 uppercase tracking-wider text-[10px]">Assessment</label>
+                  <textarea id="soapAssessment" rows="2" class="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500">1. Stage 2 Essential Hypertension (ICD-10 I10) - Inadequate control on monotherapy.
+2. Hyperlipidemia (ICD-10 E78.5) - Stable on Atorvastatin.</textarea>
+                </div>
+                <div>
+                  <label class="font-bold text-slate-700 uppercase tracking-wider text-[10px]">Plan</label>
+                  <textarea id="soapPlan" rows="2" class="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500">1. Initiate Lisinopril 10mg PO Daily per ACC/AHA dual-therapy guidelines.
+2. Continue Hydrochlorothiazide 25mg PO Daily.
+3. Recheck BMP in 3 weeks.</textarea>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 3: DRUG SAFETY & INTERACTION GUARDRAILS -->
+      <section id="page_safety" class="hidden space-y-6">
+        <div class="bg-white border border-clinical-border rounded-xl p-6 shadow-card space-y-4">
+          <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
+            <div>
+              <h3 class="font-bold text-base text-slate-900 flex items-center">
+                <i class="fa-solid fa-shield-halved text-sky-600 mr-2"></i> Deterministic Pharmacological Safety Engine
+              </h3>
+              <p class="text-xs text-slate-500">Deterministic code-level checks running before LLM generation and EHR writeback.</p>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200" id="safetySystemStatus">All Invariants Active</span>
+          </div>
+
+          <div id="safetyAlertContainer" class="space-y-3">
+            <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-start space-x-3">
+              <i class="fa-solid fa-circle-check text-emerald-600 text-lg mt-0.5"></i>
+              <div>
+                <h4 class="font-bold text-xs text-emerald-900">Safety Clearance: No Fatal Interactions Detected</h4>
+                <p class="text-xs text-emerald-800 mt-0.5">Hydrochlorothiazide + Lisinopril is a guideline-recommended synergistic combination for Stage 2 hypertension. Renal function (eGFR 88) is within safe parameters.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-3 gap-4 pt-2">
+            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Dual RAS Blockade Guard</span>
+              <p class="font-bold text-xs text-slate-800 mt-1">ACEi + ARB Combination</p>
+              <p class="text-[11px] text-slate-500 mt-1">Blocks concurrent Lisinopril + Losartan to prevent fatal hyperkalemia and acute renal failure.</p>
+            </div>
+
+            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Renal Cutoff Guard</span>
+              <p class="font-bold text-xs text-slate-800 mt-1">Metformin eGFR &lt; 30 mL/min</p>
+              <p class="text-[11px] text-slate-500 mt-1">Strict contraindication blocking Metformin in Stage 4/5 CKD to avoid lactic acidosis.</p>
+            </div>
+
+            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
+              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Electrolyte Safety Guard</span>
+              <p class="font-bold text-xs text-slate-800 mt-1">Hyperkalemia (K &gt; 5.2 mEq/L)</p>
+              <p class="text-[11px] text-slate-500 mt-1">Intercepts potassium-sparing diuretics and RAS inhibitors when serum potassium exceeds safe limits.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 4: CLINICAL PRACTICE GUIDELINES -->
+      <section id="page_guidelines" class="hidden space-y-6">
+        <div class="grid grid-cols-2 gap-6">
+          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card space-y-3">
+            <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center">
+                <i class="fa-solid fa-heart-pulse text-red-600 mr-2"></i> ACC/AHA 2017 Hypertension Standards
+              </h3>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800">Class I Recommendation</span>
+            </div>
+            <div class="space-y-3 text-xs text-slate-700">
+              <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <p class="font-bold text-slate-900">Stage 2 Hypertension Definition</p>
+                <p class="text-slate-600 mt-0.5">Systolic ≥ 140 mmHg OR Diastolic ≥ 90 mmHg on repeated clinical measurements.</p>
+              </div>
+              <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <p class="font-bold text-slate-900">Guideline Action: Dual First-Line Therapy</p>
+                <p class="text-slate-600 mt-0.5">Adults with Stage 2 hypertension and average BP &gt; 20/10 mmHg above target should be initiated on 2 first-line agents of different classes (e.g., CCB + ACEi/ARB or Thiazide + ACEi/ARB).</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card space-y-3">
+            <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
+              <h3 class="font-bold text-sm text-slate-900 flex items-center">
+                <i class="fa-solid fa-dna text-teal-600 mr-2"></i> ADA 2026 Standards of Care in Diabetes
+              </h3>
+              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800">Organ Protection</span>
+            </div>
+            <div class="space-y-3 text-xs text-slate-700">
+              <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <p class="font-bold text-slate-900">Patients with Established CKD (eGFR &lt; 60)</p>
+                <p class="text-slate-600 mt-0.5">Recommend SGLT2 inhibitor (Empagliflozin / Dapagliflozin) or GLP-1 RA with proven renal protection independent of baseline HbA1c.</p>
+              </div>
+              <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
+                <p class="font-bold text-slate-900">Renal Metformin Discontinuation Threshold</p>
+                <p class="text-slate-600 mt-0.5">Metformin is strictly contraindicated when eGFR &lt; 30 mL/min/1.73m² due to elevated risk of fatal lactic acidosis.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PAGE 5: PHYSICIAN REVIEW & AUDIT TRAIL (HITL) -->
+      <section id="page_review" class="hidden space-y-6">
+        <div class="bg-white border border-clinical-border rounded-xl p-6 shadow-card space-y-5">
+          <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
+            <div>
+              <h3 class="font-bold text-base text-slate-900 flex items-center">
+                <i class="fa-solid fa-signature text-sky-600 mr-2"></i> Physician Digital Review & EHR Commit Gate
+              </h3>
+              <p class="text-xs text-slate-500">LangGraph `interrupt()` checkpoint ensures human authorization prior to EHR persistence.</p>
+            </div>
+            <span class="px-2.5 py-1 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200" id="hitlGateStatus">Awaiting Physician Sign-Off</span>
+          </div>
+
+          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
+            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500">Proposed EHR Commit Payload</h4>
+            <div class="mono text-xs bg-white p-3 rounded-lg border border-slate-200 text-slate-800 space-y-1">
+              <p><strong>Encounter ID:</strong> ENC-2026-90421</p>
+              <p><strong>Primary Diagnosis:</strong> I10 (Essential Hypertension)</p>
+              <p><strong>Prescription:</strong> Lisinopril 10mg PO Daily (RxNorm 314076)</p>
+              <p><strong>Billing CPT:</strong> 99214 (Level 4 Established Patient Evaluation)</p>
+            </div>
+          </div>
+
+          <div class="flex items-center justify-between pt-2">
+            <div class="text-xs text-slate-500">
+              <span class="font-semibold text-slate-700">Digital Signature:</span> Dr. Sarah Lin, MD (NPI: 1849204910)
+            </div>
+            <div class="flex space-x-3">
+              <button onclick="rejectEncounter()" class="px-4 py-2 rounded-lg border border-red-300 text-red-600 font-semibold text-xs hover:bg-red-50 transition">
+                Reject Note
+              </button>
+              <button onclick="approveEncounter()" id="btn-approve" class="px-5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm flex items-center space-x-2">
+                <i class="fa-solid fa-check text-xs"></i>
+                <span>Approve & Commit to EHR</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="ehrCommitBanner" class="hidden p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
+              <span><strong>Encounter Committed:</strong> Note signed and persisted to HL7 FHIR v4 audit store at <span class="mono" id="commitTimestamp">2026-09-22 03:58:12</span>.</span>
+            </div>
+            <span class="mono px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-bold text-[10px]">FHIR 200 OK</span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <script>
+    // Tab Routing
+    function switchTab(tabId) {
+      const tabs = ['chart', 'scribe', 'safety', 'guidelines', 'review'];
+      tabs.forEach(t => {
+        const page = document.getElementById('page_' + t);
+        const btn = document.getElementById('tab_' + t);
+        if (t === tabId) {
+          page.classList.remove('hidden');
+          btn.className = 'w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition bg-sky-50 text-sky-700 border border-sky-200 shadow-sm';
+          btn.querySelector('i').className = btn.querySelector('i').className.replace('text-slate-400', 'text-sky-600');
+        } else {
+          page.classList.add('hidden');
+          btn.className = 'w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900';
+          btn.querySelector('i').className = btn.querySelector('i').className.replace('text-sky-600', 'text-slate-400');
+        }
+      });
+    }
+
+    let currentPatientId = 'pat-001';
+    let activeSoapEventSource = null;
+
+    // Scenarios
+    function selectScenario(scenario) {
+      const btnH = document.getElementById('btn_hypertension');
+      const btnD = document.getElementById('btn_dual_ras');
+      const btnC = document.getElementById('btn_ckd');
+
+      btnH.className = 'p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300';
+      btnD.className = 'p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300';
+      btnC.className = 'p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300';
+
+      const alertContainer = document.getElementById('safetyAlertContainer');
+
+      if (scenario === 'hypertension') {
+        currentPatientId = 'pat-001';
+        btnH.className = 'p-2.5 rounded-lg border border-sky-300 bg-sky-50/50 cursor-pointer transition hover:border-sky-400';
+        document.getElementById('patientName').innerText = 'Eleanor Vance';
+        document.getElementById('patientDemographics').innerText = '62 yo Female • DOB: 1964-03-12';
+        document.getElementById('patientMRN').innerText = 'MRN-90421';
+        document.getElementById('vitalBP').innerHTML = '154/96 <span class="text-xs font-normal text-slate-500">mmHg</span>';
+        document.getElementById('vitalEGFR').innerHTML = '88 <span class="text-xs font-normal text-slate-500">mL/min</span>';
+        document.getElementById('vitalHBA1C').innerHTML = '5.6 <span class="text-xs font-normal text-slate-500">%</span>';
+        alertContainer.innerHTML = `
+          <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-start space-x-3">
+            <i class="fa-solid fa-circle-check text-emerald-600 text-lg mt-0.5"></i>
+            <div>
+              <h4 class="font-bold text-xs text-emerald-900">Safety Clearance: No Fatal Interactions Detected</h4>
+              <p class="text-xs text-emerald-800 mt-0.5">Hydrochlorothiazide + Lisinopril is a guideline-recommended synergistic combination for Stage 2 hypertension. Renal function (eGFR 88) is within safe parameters.</p>
+            </div>
+          </div>`;
+      } else if (scenario === 'dual_ras') {
+        currentPatientId = 'pat-002';
+        btnD.className = 'p-2.5 rounded-lg border border-red-300 bg-red-50/50 cursor-pointer transition hover:border-red-400';
+        document.getElementById('patientName').innerText = 'Robert Chen';
+        document.getElementById('patientDemographics').innerText = '58 yo Male • DOB: 1968-11-04';
+        document.getElementById('patientMRN').innerText = 'MRN-83109';
+        document.getElementById('vitalBP').innerHTML = '148/92 <span class="text-xs font-normal text-slate-500">mmHg</span>';
+        document.getElementById('vitalEGFR').innerHTML = '48 <span class="text-xs font-normal text-slate-500">mL/min</span>';
+        document.getElementById('vitalHBA1C').innerHTML = '6.1 <span class="text-xs font-normal text-slate-500">%</span>';
+        alertContainer.innerHTML = `
+          <div class="p-4 rounded-xl border border-red-300 bg-red-50 flex items-start space-x-3">
+            <i class="fa-solid fa-triangle-exclamation text-red-600 text-lg mt-0.5"></i>
+            <div>
+              <h4 class="font-bold text-xs text-red-900">CRITICAL SAFETY INVARIANT VIOLATION: DUAL RAS BLOCKADE</h4>
+              <p class="text-xs text-red-800 mt-0.5">Concurrent prescription of Lisinopril (ACE inhibitor) and Losartan (ARB) detected. Dual renin-angiotensin blockade is strictly contraindicated due to severe risks of acute renal failure, hyperkalemia, and profound hypotension.</p>
+              <p class="text-xs font-bold text-red-900 mt-1">Action: Execution halted. One RAS blocker must be discontinued immediately.</p>
+            </div>
+          </div>`;
+      } else if (scenario === 'ckd') {
+        currentPatientId = 'pat-003';
+        btnC.className = 'p-2.5 rounded-lg border border-purple-300 bg-purple-50/50 cursor-pointer transition hover:border-purple-400';
+        document.getElementById('patientName').innerText = 'Marcus Holloway';
+        document.getElementById('patientDemographics').innerText = '71 yo Male • DOB: 1955-08-19';
+        document.getElementById('patientMRN').innerText = 'MRN-77412';
+        document.getElementById('vitalBP').innerHTML = '138/84 <span class="text-xs font-normal text-slate-500">mmHg</span>';
+        document.getElementById('vitalEGFR').innerHTML = '26 <span class="text-xs font-normal text-slate-500">mL/min</span>';
+        document.getElementById('vitalHBA1C').innerHTML = '8.4 <span class="text-xs font-normal text-slate-500">%</span>';
+        alertContainer.innerHTML = `
+          <div class="p-4 rounded-xl border border-amber-300 bg-amber-50 flex items-start space-x-3">
+            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg mt-0.5"></i>
+            <div>
+              <h4 class="font-bold text-xs text-amber-900">CONTRAINDICATION: METFORMIN IN STAGE 4 CKD (eGFR 26)</h4>
+              <p class="text-xs text-amber-800 mt-0.5">Metformin is strictly contraindicated when eGFR &lt; 30 mL/min/1.73m² due to the life-threatening risk of lactic acidosis. Per ADA 2026 guidelines, transition patient to an SGLT2i or GLP-1 RA.</p>
+            </div>
+          </div>`;
+      }
+    }
+
+    function streamSoapNote() {
+      switchTab('scribe');
+      const renderedContainer = document.getElementById('renderedSoapNote');
+      const statusBadge = document.getElementById('soapStatusBadge');
+
+      renderedContainer.innerHTML = '<span class="cursor-blink text-sky-600 font-semibold">CareFlow AI synthesizing clinical encounter with Gemini...</span>';
+      statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 animate-pulse';
+      statusBadge.innerText = 'Streaming...';
+
+      if (activeSoapEventSource) {
+        activeSoapEventSource.close();
+      }
+
+      let accumulatedMarkdown = '';
+      const evtSource = new EventSource('/api/encounters/' + currentPatientId + '/stream');
+      activeSoapEventSource = evtSource;
+
+      evtSource.addEventListener('alerts', (e) => {
+        const alerts = JSON.parse(e.data);
+        if (alerts.length > 0) {
+          const alertContainer = document.getElementById('safetyAlertContainer');
+          let html = '';
+          alerts.forEach(a => {
+            const isCrit = a.severity === 'CRITICAL';
+            html += `
+              <div class="p-4 rounded-xl border ${isCrit ? 'border-red-300 bg-red-50' : 'border-amber-300 bg-amber-50'} flex items-start space-x-3 mb-2">
+                <i class="fa-solid fa-triangle-exclamation ${isCrit ? 'text-red-600' : 'text-amber-600'} text-lg mt-0.5"></i>
+                <div>
+                  <h4 class="font-bold text-xs ${isCrit ? 'text-red-900' : 'text-amber-900'}">[${a.severity}] ${a.title}</h4>
+                  <p class="text-xs ${isCrit ? 'text-red-800' : 'text-amber-800'} mt-0.5">${a.action_required}</p>
+                </div>
+              </div>`;
+          });
+          alertContainer.innerHTML = html;
+        }
+      });
+
+      evtSource.addEventListener('chunk', (e) => {
+        const data = JSON.parse(e.data);
+        accumulatedMarkdown += data.text;
+        renderedContainer.innerHTML = marked.parse(accumulatedMarkdown);
+      });
+
+      evtSource.addEventListener('complete', (e) => {
+        evtSource.close();
+        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800';
+        statusBadge.innerText = 'SOAP Note Generated';
+      });
+
+      evtSource.onerror = (err) => {
+        console.error('SSE SOAP error:', err);
+        evtSource.close();
+        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700';
+        statusBadge.innerText = 'Ready';
+      };
+    }
+
+    function approveEncounter() {
+      document.getElementById('hitlGateStatus').className = 'px-2.5 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
+      document.getElementById('hitlGateStatus').innerText = 'Physician Signed & Approved';
+      document.getElementById('ehrCommitBanner').classList.remove('hidden');
+    }
+
+    function rejectEncounter() {
+      alert('Encounter note rejected by physician. Checkpoint recorded in EHR audit log.');
+    }
+
+    function runCareflowWorkflow() {
+      streamSoapNote();
+    }
+  </script>
+</body>
+</html>
