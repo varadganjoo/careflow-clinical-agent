@@ -12,7 +12,7 @@ from mcp.server.mcpserver import MCPServer
 
 from app.fhir import FHIRBundle
 from app.safety import check_safety_invariants, KNOWN_INTERACTIONS
-from app.llm import generate_structured, SOAPNote
+from app.llm import DEFAULT_MODEL, generate_structured, SOAPNote
 from skills.hypertension_acc_aha.rules import classify_blood_pressure
 from skills.diabetes_ada_standards.rules import assess_glycemic_control
 
@@ -163,7 +163,7 @@ def generate_clinical_soap(
     encounter_notes: str,
     proposed_plan: str = "",
 ) -> dict[str, Any]:
-    """Generates a structured clinical SOAP note using Gemini 3.8 Flash with Pydantic adherence.
+    """Generates a structured clinical SOAP note using Gemini 3.6 Flash with Pydantic adherence.
     
     Args:
         patient_id: Identifier of the patient
@@ -180,7 +180,7 @@ def generate_clinical_soap(
     soap, prompt_tokens, output_tokens = generate_structured(prompt, system, SOAPNote)
     return {
         "soap_note": soap.model_dump(),
-        "model": "gemini-3.8-flash",
+        "model": DEFAULT_MODEL,
         "tokens": {"prompt": prompt_tokens, "output": output_tokens},
     }
 

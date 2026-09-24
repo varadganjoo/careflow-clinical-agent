@@ -8,19 +8,18 @@ import json
 import logging
 import uuid
 from pathlib import Path
-from typing import Any
+from typing import Iterator, Literal
 
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
-from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 
 from app.fhir import FHIRBundle
 from app.graph import build_clinical_graph, EncounterState
-from app.llm import DEFAULT_MODEL, stream_soap_synthesis
+from app.llm import DEFAULT_MODEL, describe_llm_error, stream_soap_synthesis
 from app.phi_vault import PHIVault
 from app.safety import check_safety_invariants
 from skills.hypertension_acc_aha.rules import classify_blood_pressure
@@ -38,31 +37,65 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# In-memory durable checkpointer shared across sessions
+# ponytail: in-memory checkpointer is per-instance; a recycled serverless instance loses paused encounters.
+# Swap in a Postgres checkpointer if sign-offs must survive restarts.
 checkpointer = MemorySaver()
 graph = build_clinical_graph(checkpointer=checkpointer)
 
 # In-memory store for active session thread_ids
 active_sessions: dict[str, dict] = {}
 
+SEVERITY_RANK = {"CRITICAL": 2, "WARNING": 1}
+
 
 class ConsultRequest(BaseModel):
-    patient_id: str = Field(..., description="Patient ID e.g. pat-001, pat-002, pat-003")
-    notes: str = Field("", description="Optional encounter notes or clinician observations")
+    patient_id: str = Field(..., max_length=32, description="Patient ID e.g. pat-001, pat-002, pat-003")
+    notes: str = Field("", max_length=2000, description="Optional encounter notes or clinician observations")
+
+
+class SOAPEdits(BaseModel):
+    """Physician edits may only touch SOAP note fields; anything else is rejected."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    subjective: str | None = Field(None, max_length=5000)
+    objective: str | None = Field(None, max_length=5000)
+    assessment: str | None = Field(None, max_length=5000)
+    plan: list[str] | None = Field(None, max_length=30)
+    icd10_codes: list[str] | None = Field(None, max_length=30)
+    cpt_codes: list[str] | None = Field(None, max_length=30)
 
 
 class ResumeRequest(BaseModel):
-    action: str = Field("approve", description="'approve', 'edit', or 'reject'")
-    edits: dict[str, Any] = Field(default_factory=dict, description="Updated SOAP fields if action is 'edit'")
-    notes: str = Field("", description="Physician clinical notes or rationale")
+    action: Literal["approve", "edit", "reject"] = "approve"
+    edits: SOAPEdits = Field(default_factory=SOAPEdits, description="Updated SOAP fields if action is 'edit'")
+    notes: str = Field("", max_length=2000, description="Physician clinical notes or rationale")
 
 
 def _get_patient_bundle(patient_id: str) -> dict:
     clean_id = patient_id.replace("pat-", "").replace("patient_", "").replace(".json", "")
-    for file in DATA_DIR.glob("*.json"):
-        if clean_id in file.name:
-            return json.loads(file.read_text(encoding="utf-8"))
+    if clean_id.isdigit():
+        for file in DATA_DIR.glob("*.json"):
+            if file.name.startswith(f"patient_{clean_id}_"):
+                return json.loads(file.read_text(encoding="utf-8"))
     raise HTTPException(status_code=404, detail=f"Patient {patient_id} not found.")
+
+
+def _alert_dicts(bundle: FHIRBundle) -> list[dict]:
+    return [
+        {
+            "severity": a.severity,
+            "category": a.category,
+            "title": a.title,
+            "description": a.description,
+            "action_required": a.action_required,
+        }
+        for a in check_safety_invariants(bundle)
+    ]
+
+
+def _sse(event: str, data: dict) -> str:
+    return f"event: {event}\ndata: {json.dumps(data)}\n\n"
 
 
 @app.get("/")
@@ -86,6 +119,7 @@ def list_patients() -> list[dict]:
     for file in sorted(DATA_DIR.glob("*.json")):
         data = json.loads(file.read_text(encoding="utf-8"))
         patient = data["patient"]
+        alerts = _alert_dicts(FHIRBundle(**data))
         vitals = [f"{o['display']}: {o['value']} {o['unit']}" for o in data.get("observations", []) if o.get("category") == "vital-signs"]
         patients.append({
             "id": patient["id"],
@@ -95,6 +129,8 @@ def list_patients() -> list[dict]:
             "birthDate": patient["birthDate"],
             "primary_condition": data["conditions"][0]["code"]["display"] if data.get("conditions") else "None",
             "vitals_summary": ", ".join(vitals),
+            "alert_count": len(alerts),
+            "max_severity": max((a["severity"] for a in alerts), key=lambda s: SEVERITY_RANK.get(s, 0), default=None),
             "file": file.name,
         })
     return patients
@@ -105,8 +141,14 @@ def get_patient(patient_id: str) -> dict:
     return _get_patient_bundle(patient_id)
 
 
-def stream_encounter_soap(patient_id: str):
-    bundle_data = _get_patient_bundle(patient_id)
+@app.get("/api/patients/{patient_id}/safety")
+def get_patient_safety(patient_id: str) -> dict:
+    """Deterministic safety invariants for the patient's current meds and labs (no LLM call)."""
+    bundle = FHIRBundle(**_get_patient_bundle(patient_id))
+    return {"patient_id": bundle.patient.id, "alerts": _alert_dicts(bundle)}
+
+
+def stream_encounter_soap(bundle_data: dict, patient_id: str) -> Iterator[str]:
     bundle = FHIRBundle(**bundle_data)
 
     text_repr = (
@@ -129,19 +171,9 @@ def stream_encounter_soap(patient_id: str):
         diabetes_eval = assess_glycemic_control(a1c_obs.value, egfr_obs.value if egfr_obs else None)
         findings.append(f"ADA Diabetes: {diabetes_eval.glycemic_status}. Recs: {'; '.join(diabetes_eval.recommendations)}")
 
-    alerts = check_safety_invariants(bundle)
-    alert_dicts = [
-        {
-            "severity": a.severity,
-            "category": a.category,
-            "title": a.title,
-            "action_required": a.action_required,
-        }
-        for a in alerts
-    ]
-
-    yield f"event: alerts\ndata: {json.dumps(alert_dicts)}\n\n"
-    yield f"event: start\ndata: {json.dumps({'patient_id': patient_id, 'model': DEFAULT_MODEL})}\n\n"
+    alerts = _alert_dicts(bundle)
+    yield _sse("alerts", alerts)
+    yield _sse("start", {"patient_id": patient_id, "model": DEFAULT_MODEL})
 
     system_instruction = (
         "You are CareFlow Clinical AI, an expert medical scribe and clinical decision support system. "
@@ -152,20 +184,28 @@ def stream_encounter_soap(patient_id: str):
     prompt = (
         f"Patient Record (De-identified):\n{res.redacted_text}\n\n"
         f"Clinical Guidelines & Findings:\n" + "\n".join(findings) + "\n\n"
-        f"Safety Alerts:\n" + "\n".join([f"[{a.severity}] {a.title}: {a.action_required}" for a in alerts])
+        f"Safety Alerts:\n" + "\n".join([f"[{a['severity']}] {a['title']}: {a['action_required']}" for a in alerts])
     )
 
-    for chunk in stream_soap_synthesis(prompt=prompt, system_instruction=system_instruction):
-        yield f"event: chunk\ndata: {json.dumps({'text': chunk})}\n\n"
+    try:
+        for chunk in stream_soap_synthesis(prompt=prompt, system_instruction=system_instruction):
+            yield _sse("chunk", {"text": chunk})
+    except Exception as exc:
+        # Surface mid-stream model failures instead of silently truncating the note.
+        logger.exception("SOAP stream failed")
+        status, message, retryable = describe_llm_error(exc)
+        yield _sse("error", {"message": message, "retryable": retryable})
+        return
 
-    yield f"event: complete\ndata: {json.dumps({'status': 'complete', 'patient_id': patient_id})}\n\n"
+    yield _sse("complete", {"status": "complete", "patient_id": patient_id})
 
 
 @app.get("/api/encounters/{patient_id}/stream")
 def stream_encounter_endpoint(patient_id: str):
     """Streams clinical SOAP synthesis via Server-Sent Events (SSE)."""
+    bundle_data = _get_patient_bundle(patient_id)  # 404 before the stream starts, not mid-stream
     return StreamingResponse(
-        stream_encounter_soap(patient_id),
+        stream_encounter_soap(bundle_data, patient_id),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
@@ -199,64 +239,69 @@ def start_consultation(body: ConsultRequest) -> dict:
 
     try:
         # Run graph until it pauses at the interrupt (physician_gate)
-        result = graph.invoke(initial_state, config=config)
-        state_snapshot = graph.get_state(config)
-        
-        # Check if paused at interrupt
-        is_interrupted = len(state_snapshot.tasks) > 0 and len(state_snapshot.tasks[0].interrupts) > 0
-        interrupt_value = state_snapshot.tasks[0].interrupts[0].value if is_interrupted else None
-
-        active_sessions[session_id] = {
-            "patient_id": body.patient_id,
-            "thread_id": session_id,
-            "status": "AWAITING_PHYSICIAN_REVIEW" if is_interrupted else "COMPLETED",
-        }
-
-        return {
-            "session_id": session_id,
-            "status": "AWAITING_PHYSICIAN_REVIEW" if is_interrupted else "COMPLETED",
-            "is_interrupted": is_interrupted,
-            "interrupt_payload": interrupt_value,
-            "state": state_snapshot.values,
-        }
+        graph.invoke(initial_state, config=config)
     except Exception as exc:
         logger.exception("Consultation run failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        status, message, _ = describe_llm_error(exc)
+        raise HTTPException(status_code=status, detail=message) from exc
+
+    state_snapshot = graph.get_state(config)
+    is_interrupted = len(state_snapshot.tasks) > 0 and len(state_snapshot.tasks[0].interrupts) > 0
+    interrupt_value = state_snapshot.tasks[0].interrupts[0].value if is_interrupted else None
+    status = "AWAITING_PHYSICIAN_REVIEW" if is_interrupted else "COMPLETED"
+
+    active_sessions[session_id] = {"patient_id": body.patient_id, "thread_id": session_id, "status": status}
+    values = state_snapshot.values
+    return {
+        "session_id": session_id,
+        "status": status,
+        "is_interrupted": is_interrupted,
+        "interrupt_payload": interrupt_value,
+        "state": {
+            "soap_note": values.get("soap_note"),
+            "safety_alerts": values.get("safety_alerts"),
+            "clinical_findings": values.get("clinical_findings"),
+            "deid_text": values.get("deid_text"),
+            "redaction_count": len(values.get("phi_vault") or {}),
+        },
+    }
 
 
 @app.post("/api/consult/{session_id}/resume")
 def resume_consultation(session_id: str, body: ResumeRequest) -> dict:
     if session_id not in active_sessions:
-        raise HTTPException(status_code=404, detail=f"Session {session_id} not found.")
+        raise HTTPException(
+            status_code=404,
+            detail="This encounter is no longer open (it was already signed, or the server restarted). Generate a new draft.",
+        )
 
     config = {"configurable": {"thread_id": session_id}}
     state_snapshot = graph.get_state(config)
 
     if not state_snapshot.tasks or not state_snapshot.tasks[0].interrupts:
-        raise HTTPException(status_code=400, detail="Graph is not currently paused at an interrupt.")
+        raise HTTPException(status_code=409, detail="This encounter has already been signed or rejected.")
 
-    # Send resume command with physician feedback
+    edits = body.edits.model_dump(exclude_none=True)
+    if body.action == "edit" and not edits:
+        raise HTTPException(status_code=422, detail="Action 'edit' requires at least one edited SOAP field.")
+
     resume_payload = {
         "action": body.action,
-        "edits": body.edits,
+        "edits": edits,
         "notes": body.notes,
     }
 
-    try:
-        result = graph.invoke(Command(resume=resume_payload), config=config)
-        final_state = graph.get_state(config)
-        active_sessions[session_id]["status"] = final_state.values.get("physician_status", "COMPLETED")
+    graph.invoke(Command(resume=resume_payload), config=config)
+    final_state = graph.get_state(config)
+    active_sessions[session_id]["status"] = final_state.values.get("physician_status", "COMPLETED")
 
-        return {
-            "session_id": session_id,
-            "status": final_state.values.get("physician_status"),
-            "ehr_committed": final_state.values.get("ehr_committed", False),
-            "final_soap": final_state.values.get("soap_note"),
-            "physician_notes": final_state.values.get("physician_notes"),
-        }
-    except Exception as exc:
-        logger.exception("Resume consultation failed")
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return {
+        "session_id": session_id,
+        "status": final_state.values.get("physician_status"),
+        "ehr_committed": final_state.values.get("ehr_committed", False),
+        "final_soap": final_state.values.get("soap_note"),
+        "physician_notes": final_state.values.get("physician_notes"),
+    }
 
 
 @app.get("/api/consult/{session_id}/status")

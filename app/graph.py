@@ -51,6 +51,10 @@ def node_ingest_and_triage(state: EncounterState) -> dict:
 def node_deid(state: EncounterState) -> dict:
     bundle = FHIRBundle(**state["raw_bundle"])
     text_repr = f"Patient: {bundle.patient.name}, MRN: {bundle.patient.mrn}. Address: {bundle.patient.address}, Phone: {bundle.patient.telecom}. Conditions: {[c.code.display for c in bundle.conditions]}. Meds: {[m.medication for m in bundle.medications]}."
+    # The ambient transcript goes through the same vault so spoken names never reach the model.
+    transcript = "\n".join(f"{line['speaker']}: {line['text']}" for line in state["raw_bundle"].get("encounter_transcript", []))
+    if transcript:
+        text_repr += f"\n\nEncounter transcript:\n{transcript}"
     res = PHIVault.deidentify(text_repr, patient_name=bundle.patient.name, patient_mrn=bundle.patient.mrn)
     return {
         "deid_text": res.redacted_text,
@@ -97,7 +101,7 @@ def node_safety_guard(state: EncounterState) -> dict:
     return {"safety_alerts": alert_dicts}
 
 
-# 5. SOAP Scribe Node (Gemini 3.8 Flash)
+# 5. SOAP Scribe Node (Gemini)
 def node_scribe_soap(state: EncounterState) -> dict:
     deid_text = state.get("deid_text", "")
     findings = "\n".join(state.get("clinical_findings", []))

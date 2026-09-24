@@ -65,6 +65,16 @@ class PHIVault:
         redacted = ADDRESS_RE.sub(lambda m: replace_with_token(m.group(0), "ADDRESS"), redacted)
         redacted = MRN_RE.sub(lambda m: replace_with_token(m.group(0), "MRN"), redacted)
 
+        # 3. Name parts on their own ("Good morning, Eleanor"). Runs last so emails/addresses are already tokenized.
+        for part in patient_name.split():
+            if len(part) > 1:
+                redacted = re.sub(
+                    rf"\b{re.escape(part)}\b",
+                    lambda m: replace_with_token(m.group(0), "PATIENT_NAME"),
+                    redacted,
+                    flags=re.IGNORECASE,
+                )
+
         return DeIDResult(
             redacted_text=redacted,
             vault=vault,

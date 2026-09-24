@@ -1,4 +1,4 @@
-"""Unit tests for Gemini 3.8 Flash Client error handling and invariants.
+"""Unit tests for Gemini 3.6 Flash Client error handling and invariants.
 Ensures that missing API keys or upstream model failures fail loudly with explicit errors
 rather than silently returning canned/mocked SOAP notes.
 """

@@ -31,3 +31,14 @@ def test_rehydrate_restores_original_values():
     assert "[PATIENT_NAME_1]" in deid.redacted_text
     restored = PHIVault.rehydrate(deid.redacted_text, deid.vault)
     assert restored == original
+
+
+def test_deidentify_masks_first_and_last_name_on_their_own():
+    transcript = "Clinician: Good morning, Eleanor. Mrs. Vance, how are the readings? Patient: Eleanor is fine."
+    res = PHIVault.deidentify(transcript, patient_name="Eleanor Vance", patient_mrn="MRN-92841")
+
+    assert "Eleanor" not in res.redacted_text
+    assert "Vance" not in res.redacted_text
+    # The same name part maps to one stable token, and rehydration restores the original text.
+    assert res.redacted_text.count(res.redacted_text.split("morning, ")[1].split(".")[0]) == 2
+    assert PHIVault.rehydrate(res.redacted_text, res.vault) == transcript

@@ -95,5 +95,19 @@
       "authoredOn": "2020-05-15"
     }
   ],
-  "allergies": []
+  "allergies": [],
+  "encounter_transcript": [
+    {
+      "speaker": "Clinician",
+      "text": "Marcus, your A1c came back at 8.4, and your kidney function has dropped to an eGFR of 26."
+    },
+    {
+      "speaker": "Patient",
+      "text": "I'm still taking the metformin twice a day like before. I've been more tired than usual."
+    },
+    {
+      "speaker": "Clinician",
+      "text": "With your kidneys at this level we need to review the metformin today and look at other options for your sugars."
+    }
+  ]
 }

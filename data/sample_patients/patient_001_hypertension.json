@@ -92,5 +92,19 @@
       "reaction": "Mild maculopapular rash",
       "severity": "mild"
     }
+  ],
+  "encounter_transcript": [
+    {
+      "speaker": "Clinician",
+      "text": "Good morning, Eleanor. Your home readings are still running in the 150s over 90s on the hydrochlorothiazide."
+    },
+    {
+      "speaker": "Patient",
+      "text": "I've had a few mild headaches in the mornings. No chest pain or shortness of breath."
+    },
+    {
+      "speaker": "Clinician",
+      "text": "Your kidney function and potassium look fine, so we can talk about adding a second blood pressure medication today."
+    }
   ]
 }

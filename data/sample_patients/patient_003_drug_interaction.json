@@ -80,5 +80,19 @@
       "authoredOn": "2026-09-15"
     }
   ],
-  "allergies": []
+  "allergies": [],
+  "encounter_transcript": [
+    {
+      "speaker": "Clinician",
+      "text": "Robert, your potassium is 5.6, which is higher than we want."
+    },
+    {
+      "speaker": "Patient",
+      "text": "My cardiologist started losartan last month, and I'm still on the lisinopril from my regular doctor."
+    },
+    {
+      "speaker": "Clinician",
+      "text": "Taking those two together can push potassium up. We need to sort that out before you leave today."
+    }
+  ]
 }

@@ -14,7 +14,7 @@ load_dotenv()
 
 logger = logging.getLogger("careflow.llm")
 
-# Primary model: Gemini 2.5 Flash / Gemini 3.8 Flash
+# Default model; override with GEMINI_MODEL.
 DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 T = TypeVar("T", bound=BaseModel)
@@ -51,7 +51,7 @@ def generate_structured(
     schema: Type[T],
     model: str = DEFAULT_MODEL,
 ) -> tuple[T, int, int]:
-    """Generates structured Pydantic output using Gemini 3.8 Flash.
+    """Generates structured Pydantic output using Gemini 3.6 Flash.
 
     Raises:
         RuntimeError: If GEMINI_API_KEY is not configured or the Gemini API call fails.
@@ -126,3 +126,18 @@ def stream_soap_synthesis(
         logger.error(f"Gemini streaming SOAP generation failed: {exc}")
         raise RuntimeError(f"Gemini streaming SOAP generation failed: {exc}") from exc
 
+
+
+def describe_llm_error(exc: Exception) -> tuple[int, str, bool]:
+    """Maps a Gemini failure to (HTTP status, message a demo visitor can act on, whether retrying soon can help)."""
+    text = str(exc)
+    if "PerDay" in text:
+        # Retrying will not help until the free-tier daily quota resets (midnight Pacific).
+        return 429, "The demo's daily Gemini free-tier quota is used up. It resets at midnight Pacific time.", False
+    if "429" in text or "RESOURCE_EXHAUSTED" in text:
+        return 429, "Gemini free-tier rate limit reached (5 requests/minute). Wait about a minute, then retry.", True
+    if "503" in text or "UNAVAILABLE" in text:
+        return 503, "Gemini is overloaded right now (already retried with backoff). Try again shortly.", True
+    if "not configured" in text:
+        return 500, "GEMINI_API_KEY is not configured on this deployment.", False
+    return 502, f"Model call failed: {text[:200]}", False
