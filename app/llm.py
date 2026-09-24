@@ -15,7 +15,7 @@ load_dotenv()
 logger = logging.getLogger("careflow.llm")
 
 # Primary model: Gemini 2.5 Flash / Gemini 3.8 Flash
-DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -35,7 +35,11 @@ def get_gemini_client():
         return None
     try:
         from google import genai
-        return genai.Client(api_key=api_key)
+        from google.genai import types
+
+        # Free-tier Gemini sheds load with 503s and per-minute 429s; back off and retry transient failures.
+        retry = types.HttpRetryOptions(attempts=4, initial_delay=2.0, max_delay=10.0, http_status_codes=[429, 503])
+        return genai.Client(api_key=api_key, http_options=types.HttpOptions(retry_options=retry))
     except Exception as exc:
         logger.warning(f"Failed to initialize google-genai client: {exc}")
         return None
