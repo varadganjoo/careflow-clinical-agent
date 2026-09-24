@@ -10,7 +10,7 @@ A clinical decision support and documentation demo built with **Gemini** (3.6, 3
 
 It drafts SOAP notes from an encounter transcript and FHIR-shaped patient data, runs deterministic safety checks (drug interactions, renal contraindications, critical labs) before the model is called, de-identifies patient identifiers before any model call, and pauses the graph until a physician approves, edits, or rejects the draft.
 
-**Live demo:** https://careflow-clinical-agent.vercel.app (sample patients only; it runs on Gemini's free tier, so the scribe is limited to a small number of drafts per day)
+**Live demo:** https://careflow-clinical-agent.vercel.app (sample patients only; it runs on free-tier Gemini with a Groq backup, so drafts per day are limited)
 
 > [!NOTE]
 > This is a portfolio project using fictional sample patients. It is not a medical device and has not been clinically validated.
