@@ -143,13 +143,15 @@ CareFlow provides a structured clinical workstation designed for ambulatory and 
 ![Patient chart](images/01_patient_chart.png)
 
 2. **Clinical Scribe & SOAP Studio**:
+![SOAP draft](images/03_scribe.png)
 
 3. **Drug Safety & Interaction Guardrails**:
 ![Safety checks](images/02_safety_checks.png)
 
 4. **Clinical Guidelines (ACC/AHA & ADA)**:
 
-5. **Physician Review & Audit Trail**:
+5. **Physician Sign-off**:
+![Physician sign-off](images/04_signoff.png)
 
 ---
 

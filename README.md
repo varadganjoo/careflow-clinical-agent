@@ -6,7 +6,7 @@
 [![Architecture RFC](https://img.shields.io/badge/Architecture-Design%20RFC-blue.svg)](docs/ARCHITECTURE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-gray.svg)](LICENSE)
 
-A clinical decision support and documentation demo built with **Gemini** (3.6, 3.7 and 3.8 Flash as a fallback chain), a **Model Context Protocol (MCP)** server, and a **LangGraph state machine** with a **Human-in-the-Loop (HITL)** physician sign-off.
+A clinical decision support and documentation demo built with **Gemini** (3.6, 3.7 and 3.8 Flash as a fallback chain, then Groq as a backup), a **Model Context Protocol (MCP)** server, and a **LangGraph state machine** with a **Human-in-the-Loop (HITL)** physician sign-off.
 
 It drafts SOAP notes from an encounter transcript and FHIR-shaped patient data, runs deterministic safety checks (drug interactions, renal contraindications, critical labs) before the model is called, de-identifies patient identifiers before any model call, and pauses the graph until a physician approves, edits, or rejects the draft.
 
@@ -33,6 +33,8 @@ Latest observations with reference ranges, the problem list with ICD-10 codes, a
 ### 2. Clinical Scribe & SOAP Studio
 The scribe drafts a structured SOAP note with suggested ICD-10 and CPT codes from the de-identified transcript, guideline findings, and safety alerts. Every field stays editable until sign-off.
 
+![SOAP draft from the de-identified transcript](docs/images/03_scribe.png)
+
 ---
 
 ### 3. Drug Safety & Interaction Guardrails
@@ -50,6 +52,8 @@ Summaries of the ACC/AHA 2017 hypertension and ADA diabetes rules that the guide
 ### 5. Physician Sign-off (LangGraph HITL)
 The graph pauses at LangGraph's `interrupt()`. Signing sends approve (or edit, if any field changed) and rejecting sends reject via `Command(resume=...)`; only approved or edited notes reach the writeback node. The demo has no external EHR.
 
+![Physician sign-off](docs/images/04_signoff.png)
+
 ---
 
 ## What it does, and what it doesn't
@@ -59,7 +63,7 @@ The graph pauses at LangGraph's `interrupt()`. Signing sends approve (or edit, i
 | **Safety checks** | Deterministic rules for dual RAS blockade, beta blocker plus diltiazem, metformin with low eGFR, hyperkalemia, and hypertensive crisis. | A small hand-written rule set, not a drug-interaction database. |
 | **De-identification** | Names (including first or last name alone), MRNs, phone numbers, emails, street addresses, and SSNs are replaced with tokens before any model call. | Regex-based; it does not cover all 18 HIPAA Safe Harbor identifiers. |
 | **Human sign-off** | Nothing reaches the writeback node without an explicit approve or edit. | Paused encounters are held in memory, so a server restart drops them. |
-| **Model resilience** | Falls back from Gemini 3.6 to 3.7 to 3.8 Flash on quota, overload, or unavailable-model errors. | Free-tier quotas still cap the number of drafts per day. |
+| **Model resilience** | Falls back from Gemini 3.6 to 3.7 to 3.8 Flash on quota, overload, or unavailable-model errors, then to Groq (`openai/gpt-oss-120b`). | Free-tier quotas still cap the number of drafts per day. |
 
 ---
 
@@ -83,7 +87,7 @@ flowchart TD
         DeIDNode["2. HIPAA PHI De-ID Vault<br/>(Safe Harbor 18 Tokenizer)"]
         SkillNode["3. Clinical Skills RAG<br/>(ACC/AHA & ADA Guidelines)"]
         SafetyNode["4. Deterministic Safety Guard<br/>(Drug-Drug & Lab Thresholds)"]
-        ScribeNode["5. SOAP Scribe & ICD-10 Coding<br/>(Gemini 3.6 / 3.7 / 3.8 Flash)"]
+        ScribeNode["5. SOAP Scribe & ICD-10 Coding<br/>(Gemini 3.6 / 3.7 / 3.8 Flash, then Groq)"]
         PauseNode["6. Physician Review Gate<br/>(interrupt() Checkpoint)"]
         WritebackNode["7. EHR Writeback Node<br/>(Command(resume) Commit)"]
     end
@@ -121,7 +125,7 @@ flowchart TD
    - Exposes FHIR records as passive resources (`fhir://patients/{id}`) and clinical decision functions as tools (`check_drug_interactions`, `query_clinical_guidelines`, `evaluate_patient_safety`).
    - Supports both **STDIO** (for local agent desktop use) and **HTTP/SSE** (for remote microservices).
 5. **Gemini with model fallback**:
-   - Tries `gemini-3.6-flash`, then `gemini-3.7-flash`, then `gemini-3.8-flash` (override with a comma-separated `GEMINI_MODELS`). Each model has its own free-tier quota, so the chain also extends the daily budget. SOAP notes use Pydantic structured output via the `google-genai` SDK.
+   - Tries `gemini-3.6-flash`, then `gemini-3.7-flash`, then `gemini-3.8-flash` (override with a comma-separated `GEMINI_MODELS`). Each model has its own free-tier quota, so the chain also extends the daily budget. If all three fail, `GROQ_API_KEY` enables a Groq backup (`GROQ_MODEL`, default `openai/gpt-oss-120b`). SOAP notes use Pydantic structured output on both providers.
 
 ---
 
@@ -172,7 +176,7 @@ Add to your `claude_desktop_config.json`:
 python -m pytest tests/ -v
 ```
 
-Covers FHIR parsing, the safety rules, de-identification (including names inside transcripts), the LangGraph interrupt/resume lifecycle, the HTTP API (sign-off validation and error handling), the MCP server, and the model fallback chain. CI runs the suite on every push (badge above).
+Covers FHIR parsing, the safety rules, de-identification (including names inside transcripts), the LangGraph interrupt/resume lifecycle, the HTTP API (sign-off validation and error handling), the MCP server, and the Gemini and Groq fallback chain. CI runs the suite on every push (badge above).
 
 ---
 
