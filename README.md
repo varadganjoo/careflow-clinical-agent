@@ -6,9 +6,14 @@
 [![Architecture RFC](https://img.shields.io/badge/Architecture-Design%20RFC-blue.svg)](docs/ARCHITECTURE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-gray.svg)](LICENSE)
 
-A clinical decision support and EHR documentation service built with **Gemini 3.6 Flash**, a **Model Context Protocol (MCP)** server, and a durable **LangGraph state machine** featuring **Human-in-the-Loop (HITL)** physician verification.
+A clinical decision support and documentation demo built with **Gemini** (3.6, 3.7 and 3.8 Flash as a fallback chain), a **Model Context Protocol (MCP)** server, and a **LangGraph state machine** with a **Human-in-the-Loop (HITL)** physician sign-off.
 
-Designed to assist ambulatory clinicians with ambient SOAP note generation while enforcing deterministic safety invariants (drug-drug interaction blocking, renal contraindications, and HIPAA Safe Harbor 18 de-identification).
+It drafts SOAP notes from an encounter transcript and FHIR-shaped patient data, runs deterministic safety checks (drug interactions, renal contraindications, critical labs) before the model is called, de-identifies patient identifiers before any model call, and pauses the graph until a physician approves, edits, or rejects the draft.
+
+**Live demo:** https://careflow-clinical-agent.vercel.app (sample patients only; it runs on Gemini's free tier, so the scribe is limited to a small number of drafts per day)
+
+> [!NOTE]
+> This is a portfolio project using fictional sample patients. It is not a medical device and has not been clinically validated.
 
 > 📄 **System Architecture**: For technical implementation details, safety invariant proofs, and data flow specifications, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
@@ -16,52 +21,45 @@ Designed to assist ambulatory clinicians with ambient SOAP note generation while
 
 ## Visual Walkthrough & Clinical Workstation
 
-A clean clinical workstation designed for ambulatory and hospital workflows: structured vitals grids, tabular lab panels, and an ambient SOAP documentation studio.
+Screenshots from the live demo.
 
-### 1. Patient Chart & Longitudinal Vitals
-The Patient Chart page presents clean FHIR v4 resource aggregation: active conditions (ICD-10 `I10`), medication lists with RxNorm codes, and longitudinal vitals with normal reference ranges.
+### 1. Patient Chart
+Latest observations with reference ranges, the problem list with ICD-10 codes, active medications, and allergies, all rendered from the patient's FHIR-shaped record.
 
-![Patient Chart & Vitals](docs/images/01_patient_chart_vitals.png)
+![Patient chart](docs/images/01_patient_chart.png)
 
 ---
 
 ### 2. Clinical Scribe & SOAP Studio
-The ambient scribing studio extracts structured Subjective, Objective, Assessment, and Plan (SOAP) notes from doctor-patient dialogue in real-time, automatically mapping diagnoses to ICD-10 and CPT billing codes.
-
-![Clinical Scribe & SOAP Studio](docs/images/02_clinical_scribe_soap_studio.png)
+The scribe drafts a structured SOAP note with suggested ICD-10 and CPT codes from the de-identified transcript, guideline findings, and safety alerts. Every field stays editable until sign-off.
 
 ---
 
 ### 3. Drug Safety & Interaction Guardrails
-Deterministic safety invariants physically inspect all active medications and lab thresholds. Unsafe combinations (such as concurrent Lisinopril + Losartan dual RAS blockade or Metformin with eGFR < 30) trigger high-visibility critical alerts and halt execution.
+Deterministic rules check active medications and labs before the scribe runs. Unsafe combinations (for example lisinopril with losartan, or metformin with eGFR below 30) raise critical alerts that are shown to the physician and passed to the scribe.
 
-![Drug Safety & Interaction Guardrails](docs/images/03_drug_safety_interaction_guardrails.png)
+![Safety checks](docs/images/02_safety_checks.png)
 
 ---
 
 ### 4. Clinical Practice Guidelines (ACC/AHA & ADA)
-Displays authoritative clinical practice guidelines directly alongside patient metrics, showing stage classification (e.g., ACC/AHA 2017 Stage 2 Hypertension for SBP ≥ 140) and evidence-based first-line therapy recommendations.
-
-![Clinical Practice Guidelines](docs/images/04_clinical_guidelines_ada_aha.png)
+Summaries of the ACC/AHA 2017 hypertension and ADA diabetes rules that the guideline skills apply (for example Stage 2 hypertension at 140/90 and the metformin eGFR cutoff).
 
 ---
 
-### 5. Physician Review & Audit Trail (LangGraph HITL)
-Enforces a strict Human-in-the-Loop review gate using LangGraph's `interrupt()`. Physicians can inspect proposed orders, make edits, and digitally sign off before committing encrypted notes to the EHR audit log.
-
-![Physician Review & Audit Trail](docs/images/05_physician_review_audit_trail.png)
+### 5. Physician Sign-off (LangGraph HITL)
+The graph pauses at LangGraph's `interrupt()`. Signing sends approve (or edit, if any field changed) and rejecting sends reject via `Command(resume=...)`; only approved or edited notes reach the writeback node. The demo has no external EHR.
 
 ---
 
-## Key Benefits & Clinical ROI
+## What it does, and what it doesn't
 
-| Benefit Area | Clinical & Business Impact |
-| :--- | :--- |
-| **Documentation Burden** | **Reduces daily EHR charting time by up to 35%**, generating accurate, structured SOAP notes in seconds. |
-| **Patient Safety** | **Zero hallucinated prescriptions**: Deterministic code checks physically intercept drug interactions and renal cutoffs before model generation. |
-| **HIPAA Compliance** | **Zero PHI leakage**: Built-in Safe Harbor 18 vault de-identifies all 18 patient identifiers before any cloud API call. |
-| **Interoperability** | **Turnkey EHR integration**: Built on standard **HL7 FHIR v4** schemas and **MCP** for connectivity with clinical systems and AI desktop hosts. |
-| **Billing Accuracy** | **Automated Coding**: Accurately suggests compliant ICD-10 diagnosis codes (e.g. `I10`, `E11.9`) and CPT evaluation codes (`99214`). |
+| Area | What is implemented | Limits |
+| :--- | :--- | :--- |
+| **Safety checks** | Deterministic rules for dual RAS blockade, beta blocker plus diltiazem, metformin with low eGFR, hyperkalemia, and hypertensive crisis. | A small hand-written rule set, not a drug-interaction database. |
+| **De-identification** | Names (including first or last name alone), MRNs, phone numbers, emails, street addresses, and SSNs are replaced with tokens before any model call. | Regex-based; it does not cover all 18 HIPAA Safe Harbor identifiers. |
+| **Human sign-off** | Nothing reaches the writeback node without an explicit approve or edit. | Paused encounters are held in memory, so a server restart drops them. |
+| **Model resilience** | Falls back from Gemini 3.6 to 3.7 to 3.8 Flash on quota, overload, or unavailable-model errors. | Free-tier quotas still cap the number of drafts per day. |
 
 ---
 
@@ -70,7 +68,7 @@ Enforces a strict Human-in-the-Loop review gate using LangGraph's `interrupt()`.
 ```mermaid
 flowchart TD
     subgraph ClientLayer["1. Client & Integration Layer"]
-        PhysicianUI["Physician Portal (FastAPI + Dark SaaS UI)"]
+        PhysicianUI["Physician Portal (FastAPI + static UI)"]
         ExternalHost["MCP Hosts (Claude Desktop / Cursor / Hospital EHR)"]
     end
 
@@ -85,7 +83,7 @@ flowchart TD
         DeIDNode["2. HIPAA PHI De-ID Vault<br/>(Safe Harbor 18 Tokenizer)"]
         SkillNode["3. Clinical Skills RAG<br/>(ACC/AHA & ADA Guidelines)"]
         SafetyNode["4. Deterministic Safety Guard<br/>(Drug-Drug & Lab Thresholds)"]
-        ScribeNode["5. SOAP Scribe & ICD-10 Coding<br/>(Gemini 3.6 Flash)"]
+        ScribeNode["5. SOAP Scribe & ICD-10 Coding<br/>(Gemini 3.6 / 3.7 / 3.8 Flash)"]
         PauseNode["6. Physician Review Gate<br/>(interrupt() Checkpoint)"]
         WritebackNode["7. EHR Writeback Node<br/>(Command(resume) Commit)"]
     end
@@ -114,16 +112,16 @@ flowchart TD
    - The physician can **Approve-as-Is**, **Edit-before-Execute** (e.g. adjust medication dosage), or **Reject**. Resumption occurs via `Command(resume=...)`. Zero clinical notes are committed without explicit physician sign-off.
 2. **Deterministic Clinical Safety Invariants**:
    - Hardcoded clinical rules intercept dangerous drug combinations before LLM generation:
-     - **Dual RAS Blockade**: ACE inhibitor (Lisinopril) + ARB (Losartan) is flagged as `CRITICAL` and blocked.
-     - **Metformin Renal Cutoff**: Metformin is strictly blocked if eGFR < 30 mL/min/1.73m² (lactic acidosis risk).
+     - **Dual RAS Blockade**: ACE inhibitor (Lisinopril) + ARB (Losartan) is flagged as `CRITICAL`.
+     - **Metformin Renal Cutoff**: Metformin is flagged `CRITICAL` below eGFR 30 mL/min/1.73m² and `WARNING` below 45.
      - **Hyperkalemia Alert**: Serum Potassium >= 5.5 mEq/L triggers an urgent warning.
-3. **HIPAA Safe Harbor 18 De-identification Vault**:
-   - Automatically masks names, MRNs, phone numbers, emails, addresses, and SSNs with bidirectional tokens (e.g. `[PATIENT_NAME_1]`, `[MRN_1]`) before external model calls, re-hydrating values for local clinical display.
+3. **De-identification Vault**:
+   - Masks names (including first or last name alone), MRNs, phone numbers, emails, addresses, and SSNs with bidirectional tokens (e.g. `[PATIENT_NAME_1]`, `[MRN_1]`) before external model calls, re-hydrating values for local clinical display.
 4. **Model Context Protocol (MCP) Server**:
    - Exposes FHIR records as passive resources (`fhir://patients/{id}`) and clinical decision functions as tools (`check_drug_interactions`, `query_clinical_guidelines`, `evaluate_patient_safety`).
    - Supports both **STDIO** (for local agent desktop use) and **HTTP/SSE** (for remote microservices).
-5. **Powered by Gemini 3.6 Flash**:
-   - Uses `gemini-3.6-flash` by default (override with `GEMINI_MODEL`) via the unified `google-genai` SDK with native Pydantic schema validation for SOAP notes and ICD-10 / CPT coding.
+5. **Gemini with model fallback**:
+   - Tries `gemini-3.6-flash`, then `gemini-3.7-flash`, then `gemini-3.8-flash` (override with a comma-separated `GEMINI_MODELS`). Each model has its own free-tier quota, so the chain also extends the daily budget. SOAP notes use Pydantic structured output via the `google-genai` SDK.
 
 ---
 
@@ -160,7 +158,7 @@ Add to your `claude_desktop_config.json`:
     "careflow": {
       "command": "python",
       "args": ["-m", "mcp_server.server"],
-      "cwd": "D:/Project Workspace/careflow-clinical-agent"
+      "cwd": "/path/to/careflow-clinical-agent"
     }
   }
 }
@@ -170,31 +168,11 @@ Add to your `claude_desktop_config.json`:
 
 ## Automated Test Suite
 
-Run the full automated test suite verifying all 15 clinical invariants, FHIR parsers, HIPAA de-identification, and LangGraph interrupt/resume lifecycles:
-
 ```powershell
 python -m pytest tests/ -v
 ```
 
-```
-tests/test_fhir.py::test_fhir_bundle_parsing PASSED                      [  6%]
-tests/test_fhir.py::test_observation_lookup PASSED                       [ 13%]
-tests/test_fhir.py::test_vitals_summary PASSED                           [ 20%]
-tests/test_graph.py::test_graph_pauses_at_physician_review_gate PASSED   [ 26%]
-tests/test_graph.py::test_graph_resumes_with_physician_approval PASSED   [ 33%]
-tests/test_graph.py::test_graph_resumes_with_physician_edit PASSED       [ 40%]
-tests/test_mcp.py::test_mcp_check_drug_interactions PASSED               [ 46%]
-tests/test_mcp.py::test_mcp_query_guidelines PASSED                      [ 53%]
-tests/test_mcp.py::test_mcp_evaluate_patient_safety PASSED               [ 60%]
-tests/test_mcp.py::test_mcp_resources PASSED                             [ 66%]
-tests/test_phi_vault.py::test_deidentify_masks_hipaa_identifiers PASSED  [ 73%]
-tests/test_phi_vault.py::test_rehydrate_restores_original_values PASSED  [ 80%]
-tests/test_safety.py::test_blocks_dual_ras_blockade PASSED               [ 86%]
-tests/test_safety.py::test_blocks_metformin_in_severe_ckd PASSED         [ 93%]
-tests/test_safety.py::test_detects_hyperkalemia PASSED                   [100%]
-
-============================= 15 passed in 1.16s ==============================
-```
+Covers FHIR parsing, the safety rules, de-identification (including names inside transcripts), the LangGraph interrupt/resume lifecycle, the HTTP API (sign-off validation and error handling), the MCP server, and the model fallback chain. CI runs the suite on every push (badge above).
 
 ---
 
@@ -205,5 +183,6 @@ This repository was developed with Gemini and Claude as AI pair-programming assi
 ---
 
 ## License
-Apache 2.0
+
+MIT, see [LICENSE](LICENSE).
 

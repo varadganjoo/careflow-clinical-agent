@@ -139,20 +139,17 @@ CareFlow enforces human clinical sign-off using LangGraph's durable execution ch
 
 CareFlow provides a structured clinical workstation designed for ambulatory and hospital workflows:
 
-1. **Patient Chart & Longitudinal Vitals**:
-![Patient Chart](images/01_patient_chart_vitals.png)
+1. **Patient Chart**:
+![Patient chart](images/01_patient_chart.png)
 
 2. **Clinical Scribe & SOAP Studio**:
-![Clinical Scribe](images/02_clinical_scribe_soap_studio.png)
 
 3. **Drug Safety & Interaction Guardrails**:
-![Drug Safety](images/03_drug_safety_interaction_guardrails.png)
+![Safety checks](images/02_safety_checks.png)
 
 4. **Clinical Guidelines (ACC/AHA & ADA)**:
-![Clinical Guidelines](images/04_clinical_guidelines_ada_aha.png)
 
 5. **Physician Review & Audit Trail**:
-![Physician Review](images/05_physician_review_audit_trail.png)
 
 ---
 
@@ -169,9 +166,9 @@ CareFlow is covered by an automated test suite (`tests/`):
 
 ## References
 
-1. Google DeepMind. (September 2026). *Gemini 3.8 Model Family: Advancements in Agentic Workflows and Long-Horizon Reasoning*.
-2. Anthropic / Open Source Community. (2024–2026). *Model Context Protocol Specification*. modelcontextprotocol.io.
-3. LangChain. (2024–2026). *LangGraph: Building Resilient Multi-Agent State Machines with Durable Checkpointing*.
-4. HL7 International. (2023). *Fast Healthcare Interoperability Resources (FHIR) Release 4*. hl7.org/fhir.
-5. American College of Cardiology / American Heart Association (ACC/AHA). (2024). *Guideline for the Prevention, Detection, Evaluation, and Management of High Blood Pressure in Adults*.
-6. American Diabetes Association (ADA). (2025/2026). *Standards of Care in Diabetes*. Diabetes Care.
+1. Google. *Gemini API documentation*. https://ai.google.dev/gemini-api/docs
+2. Model Context Protocol. *Specification*. https://modelcontextprotocol.io
+3. LangChain. *LangGraph* (persistence, `interrupt()` and human-in-the-loop). https://github.com/langchain-ai/langgraph
+4. HL7 International. (2019). *FHIR Release 4*. https://hl7.org/fhir/R4/
+5. Whelton, P. K., et al. (2018). 2017 ACC/AHA/AAPA/ABC/ACPM/AGS/APhA/ASH/ASPC/NMA/PCNA Guideline for the Prevention, Detection, Evaluation, and Management of High Blood Pressure in Adults. *Hypertension*, 71(6), e13-e115.
+6. American Diabetes Association. *Standards of Care in Diabetes* (published annually as a supplement to *Diabetes Care*). https://diabetesjournals.org/care

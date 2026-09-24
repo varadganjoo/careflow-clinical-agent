@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" href="data:," />
   <title>CareFlow | Clinical Scribe</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5/400.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5/600.css" />
@@ -58,7 +59,7 @@
     </div>
 
     <p class="hidden lg:block px-5 py-3 border-t border-slate-200 text-xs text-slate-500">
-      Model <span class="font-mono text-slate-700" id="modelName">loading</span>
+      Models <span class="font-mono text-slate-700" id="modelName">loading</span>
     </p>
   </aside>
 
@@ -199,7 +200,7 @@
 
     // ---------- data ----------
     async function init() {
-      api('/health').then((h) => ($('modelName').textContent = h.model)).catch(() => ($('modelName').textContent = 'unavailable'));
+      api('/health').then((h) => ($('modelName').textContent = (h.models || [h.model]).map((m) => m.replace('gemini-', '')).join(', '))).catch(() => ($('modelName').textContent = 'unavailable'));
       try {
         state.patients = await api('/api/patients');
       } catch (err) {
