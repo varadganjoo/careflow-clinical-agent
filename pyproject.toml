@@ -1,7 +1,7 @@
 [project]
 name = "careflow-clinical-agent"
 version = "0.1.0"
-description = "Enterprise Clinical Workflow & Decision Support Platform with Gemini 3.8 Flash, MCP, and LangGraph HITL"
+description = "Enterprise Clinical Workflow & Decision Support Platform with Gemini 3.6 Flash, MCP, and LangGraph HITL"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [

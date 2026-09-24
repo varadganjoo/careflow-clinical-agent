@@ -6,7 +6,7 @@
 [![Architecture RFC](https://img.shields.io/badge/Architecture-Design%20RFC-blue.svg)](docs/ARCHITECTURE.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-gray.svg)](LICENSE)
 
-A clinical decision support and EHR documentation service built with **Gemini 3.8 Flash**, a **Model Context Protocol (MCP)** server, and a durable **LangGraph state machine** featuring **Human-in-the-Loop (HITL)** physician verification.
+A clinical decision support and EHR documentation service built with **Gemini 3.6 Flash**, a **Model Context Protocol (MCP)** server, and a durable **LangGraph state machine** featuring **Human-in-the-Loop (HITL)** physician verification.
 
 Designed to assist ambulatory clinicians with ambient SOAP note generation while enforcing deterministic safety invariants (drug-drug interaction blocking, renal contraindications, and HIPAA Safe Harbor 18 de-identification).
 
@@ -85,7 +85,7 @@ flowchart TD
         DeIDNode["2. HIPAA PHI De-ID Vault<br/>(Safe Harbor 18 Tokenizer)"]
         SkillNode["3. Clinical Skills RAG<br/>(ACC/AHA & ADA Guidelines)"]
         SafetyNode["4. Deterministic Safety Guard<br/>(Drug-Drug & Lab Thresholds)"]
-        ScribeNode["5. SOAP Scribe & ICD-10 Coding<br/>(Gemini 3.8 Flash)"]
+        ScribeNode["5. SOAP Scribe & ICD-10 Coding<br/>(Gemini 3.6 Flash)"]
         PauseNode["6. Physician Review Gate<br/>(interrupt() Checkpoint)"]
         WritebackNode["7. EHR Writeback Node<br/>(Command(resume) Commit)"]
     end
@@ -122,8 +122,8 @@ flowchart TD
 4. **Model Context Protocol (MCP) Server**:
    - Exposes FHIR records as passive resources (`fhir://patients/{id}`) and clinical decision functions as tools (`check_drug_interactions`, `query_clinical_guidelines`, `evaluate_patient_safety`).
    - Supports both **STDIO** (for local agent desktop use) and **HTTP/SSE** (for remote microservices).
-5. **Powered by Gemini 3.8 Flash**:
-   - Utilizes Google's latest September 2026 `gemini-3.8-flash` via the unified `google-genai` SDK with native Pydantic schema validation for SOAP notes and ICD-10 / CPT coding.
+5. **Powered by Gemini 3.6 Flash**:
+   - Uses `gemini-3.6-flash` by default (override with `GEMINI_MODEL`) via the unified `google-genai` SDK with native Pydantic schema validation for SOAP notes and ICD-10 / CPT coding.
 
 ---
 

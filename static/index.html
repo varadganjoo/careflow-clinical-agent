@@ -3,642 +3,499 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CareFlow EHR — Clinical Decision Support & Scribe Platform</title>
+  <title>CareFlow | Clinical Scribe</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5/400.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-sans@5/600.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fontsource/geist-mono@5/400.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script>
     tailwind.config = {
-      darkMode: 'class',
       theme: {
         extend: {
-          colors: {
-            clinical: {
-              bg: '#F8FAFC',
-              sidebar: '#FFFFFF',
-              surface: '#FFFFFF',
-              border: '#E2E8F0',
-              primary: '#0284C7',
-              primaryHover: '#0369A1',
-              teal: '#0D9488',
-              emerald: '#10B981',
-              amber: '#D97706',
-              danger: '#DC2626',
-              text: '#0F172A',
-              muted: '#64748B',
-              subtle: '#94A3B8'
-            }
+          fontFamily: {
+            sans: ['"Geist Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"Geist Mono"', 'ui-monospace', 'monospace'],
           },
-          boxShadow: {
-            card: '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05)',
-            cardHover: '0 4px 6px -1px rgba(0, 0, 0, 0.08), 0 2px 4px -2px rgba(0, 0, 0, 0.06)'
-          }
-        }
-      }
+        },
+      },
     }
   </script>
   <style>
-    body { background-color: #F8FAFC; color: #0F172A; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
-    .mono { font-family: "JetBrains Mono", Consolas, Monaco, monospace; }
-    .markdown-content h3 { font-weight: 700; font-size: 0.9rem; color: #0369A1; margin-top: 1rem; margin-bottom: 0.35rem; border-bottom: 1px solid #E2E8F0; padding-bottom: 0.25rem; }
-    .markdown-content p { margin-bottom: 0.5rem; line-height: 1.55; }
-    .markdown-content ul { list-style-type: disc; margin-left: 1.25rem; margin-bottom: 0.5rem; }
-    .markdown-content li { margin-bottom: 0.25rem; }
-    .markdown-content strong { color: #0F172A; font-weight: 600; }
-    .markdown-content blockquote { border-left: 3px solid #0284C7; padding-left: 0.75rem; margin: 0.5rem 0; color: #475569; background: #F0F9FF; }
-    .cursor-blink::after { content: '▋'; animation: blink 1s infinite; color: #0284C7; }
-    @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+    .skeleton { background: #E2E8F0; border-radius: 8px; animation: pulse 1.4s ease-in-out infinite; }
+    @keyframes pulse { 50% { opacity: .5; } }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    button:not(:disabled):active { transform: translateY(1px); }
+    :focus-visible { outline: 2px solid #0369A1; outline-offset: 2px; }
+    textarea, input { font: inherit; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
   </style>
 </head>
-<body class="min-h-screen flex bg-clinical-bg text-clinical-text">
+<body class="min-h-[100dvh] bg-slate-50 text-slate-900 font-sans text-sm antialiased lg:flex">
 
-  <!-- LEFT CLINICAL SIDEBAR -->
-  <aside class="w-72 bg-white border-r border-clinical-border flex flex-col justify-between shrink-0 h-screen sticky top-0 shadow-sm">
-    <div>
-      <!-- Hospital Brand -->
-      <div class="px-6 py-5 border-b border-clinical-border flex items-center space-x-3">
-        <div class="h-10 w-10 rounded-xl bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-600 font-black text-xl shadow-sm">
-          <i class="fa-solid fa-hospital"></i>
-        </div>
-        <div>
-          <h1 class="font-extrabold text-sm tracking-tight text-slate-900">CareFlow <span class="text-sky-600 font-bold">EHR</span></h1>
-          <p class="text-[11px] font-medium text-slate-500">St. Jude Health System</p>
-        </div>
-      </div>
-
-      <!-- Navigation Tabs -->
-      <div class="p-4">
-        <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 mb-2">Clinical Workstation</p>
-        <nav class="space-y-1">
-          <button onclick="switchTab('chart')" id="tab_chart" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition bg-sky-50 text-sky-700 border border-sky-200 shadow-sm">
-            <i class="fa-solid fa-id-card text-sky-600 w-4"></i>
-            <span>Patient Chart & Vitals</span>
-          </button>
-          <button onclick="switchTab('scribe')" id="tab_scribe" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-            <i class="fa-solid fa-file-waveform text-slate-400 w-4"></i>
-            <span>Ambient SOAP Scribe</span>
-          </button>
-          <button onclick="switchTab('safety')" id="tab_safety" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-            <i class="fa-solid fa-shield-halved text-slate-400 w-4"></i>
-            <span>Drug Safety & Guardrails</span>
-          </button>
-          <button onclick="switchTab('guidelines')" id="tab_guidelines" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-            <i class="fa-solid fa-book-medical text-slate-400 w-4"></i>
-            <span>Clinical Guidelines</span>
-          </button>
-          <button onclick="switchTab('review')" id="tab_review" class="w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900">
-            <i class="fa-solid fa-signature text-slate-400 w-4"></i>
-            <span>Physician Sign-Off</span>
-          </button>
-        </nav>
-      </div>
-
-      <!-- Encounter Selector -->
-      <div class="px-4 py-2 border-t border-clinical-border">
-        <p class="text-[10px] uppercase font-bold tracking-wider text-slate-400 px-3 mb-2">Today's Encounters</p>
-        <div class="space-y-1.5" id="patientList">
-          <div onclick="selectScenario('hypertension')" id="btn_hypertension" class="p-2.5 rounded-lg border border-sky-300 bg-sky-50/50 cursor-pointer transition hover:border-sky-400">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-xs text-slate-900">Eleanor Vance</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-200">HTN Stage 2</span>
-            </div>
-            <p class="text-[11px] text-slate-500 mt-0.5">62F • BP 154/96 • Room 304</p>
-          </div>
-
-          <div onclick="selectScenario('dual_ras')" id="btn_dual_ras" class="p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-xs text-slate-900">Robert Chen</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-200">Safety Alert</span>
-            </div>
-            <p class="text-[11px] text-slate-500 mt-0.5">58M • Lisinopril+Losartan</p>
-          </div>
-
-          <div onclick="selectScenario('ckd')" id="btn_ckd" class="p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300">
-            <div class="flex justify-between items-center">
-              <span class="font-bold text-xs text-slate-900">Marcus Holloway</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-200">T2D + CKD</span>
-            </div>
-            <p class="text-[11px] text-slate-500 mt-0.5">71M • eGFR 26 mL/min</p>
-          </div>
-        </div>
+  <aside class="lg:w-72 lg:h-[100dvh] lg:sticky lg:top-0 shrink-0 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col">
+    <div class="px-5 h-16 flex items-center gap-3 border-b border-slate-200">
+      <i class="ph ph-first-aid-kit text-2xl text-sky-700"></i>
+      <div>
+        <p class="font-semibold leading-tight">CareFlow</p>
+        <p class="text-xs text-slate-500">Demo clinic, sample patients</p>
       </div>
     </div>
 
-    <!-- Attending Physician Profile Card -->
-    <div class="p-4 border-t border-clinical-border bg-slate-50/70">
-      <div class="flex items-center space-x-3">
-        <div class="h-9 w-9 rounded-full bg-sky-600 text-white font-bold flex items-center justify-center text-xs shadow-sm">
-          SL
-        </div>
-        <div class="overflow-hidden">
-          <p class="text-xs font-bold text-slate-900 truncate">Dr. Sarah Lin, MD</p>
-          <p class="text-[11px] text-slate-500 truncate">Attending • Cardiology</p>
-        </div>
-      </div>
-      <div class="mt-3 flex items-center justify-between text-[11px] text-slate-500 mono">
-        <span class="flex items-center"><span class="h-2 w-2 rounded-full bg-emerald-500 mr-1.5"></span> FHIR v4 OK</span>
-        <span class="text-slate-400">v3.8 Flash</span>
+    <nav class="p-3 flex lg:flex-col gap-1 overflow-x-auto" id="tabs" aria-label="Workspace">
+      <button data-tab="chart"><i class="ph ph-identification-card"></i>Chart</button>
+      <button data-tab="scribe"><i class="ph ph-microphone"></i>Scribe</button>
+      <button data-tab="safety"><i class="ph ph-shield-check"></i>Safety checks</button>
+      <button data-tab="guidelines"><i class="ph ph-book-open"></i>Guidelines</button>
+      <button data-tab="review"><i class="ph ph-signature"></i>Sign-off</button>
+    </nav>
+
+    <div class="px-3 pb-3 lg:flex-1 lg:overflow-y-auto">
+      <h2 class="px-2 py-2 text-xs font-semibold text-slate-500">Patients</h2>
+      <div class="flex lg:flex-col gap-1.5 overflow-x-auto" id="patientList">
+        <div class="skeleton h-14 w-full"></div><div class="skeleton h-14 w-full"></div><div class="skeleton h-14 w-full"></div>
       </div>
     </div>
+
+    <p class="hidden lg:block px-5 py-3 border-t border-slate-200 text-xs text-slate-500">
+      Model <span class="font-mono text-slate-700" id="modelName">loading</span>
+    </p>
   </aside>
 
-  <!-- MAIN WORKSPACE -->
-  <main class="flex-1 flex flex-col overflow-y-auto">
-
-    <!-- Top Patient Demographic Banner -->
-    <header class="bg-white border-b border-clinical-border px-8 py-4 sticky top-0 z-40 shadow-sm flex items-center justify-between">
-      <div class="flex items-center space-x-6">
-        <div>
-          <div class="flex items-center space-x-3">
-            <h2 class="text-xl font-extrabold text-slate-900 tracking-tight" id="patientName">Eleanor Vance</h2>
-            <span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200" id="patientDemographics">62 yo Female • DOB: 1964-03-12</span>
-            <span class="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200" id="encounterStatus">Encounter In Progress</span>
-          </div>
-          <div class="flex items-center space-x-4 text-xs text-slate-500 mt-1">
-            <span><strong class="text-slate-700">MRN:</strong> <span class="mono" id="patientMRN">MRN-90421</span></span>
-            <span>•</span>
-            <span><strong class="text-slate-700">Allergies:</strong> <span class="text-red-600 font-medium" id="patientAllergies">Penicillin (Severe Urticaria)</span></span>
-            <span>•</span>
-            <span><strong class="text-slate-700">Coverage:</strong> Medicare Advantage</span>
-          </div>
-        </div>
+  <main class="flex-1 min-w-0">
+    <header class="bg-white border-b border-slate-200 px-4 md:px-8 py-4 flex flex-wrap gap-4 items-center justify-between lg:sticky lg:top-0 z-10">
+      <div class="min-w-0" id="patientHeader">
+        <div class="skeleton h-6 w-48 mb-2"></div><div class="skeleton h-4 w-72"></div>
       </div>
-
-      <div class="flex items-center space-x-3">
-        <div class="bg-slate-50 border border-slate-200 rounded-lg px-3 py-1.5 text-xs flex items-center space-x-2">
-          <i class="fa-solid fa-lock text-sky-600"></i>
-          <span class="font-medium text-slate-600">HIPAA Safe Harbor 18:</span>
-          <span class="font-bold text-sky-700">VERIFIED</span>
-        </div>
-        <button onclick="runCareflowWorkflow()" class="px-3.5 py-2 rounded-lg bg-sky-600 text-white font-semibold text-xs transition hover:bg-sky-700 shadow-sm flex items-center space-x-2">
-          <i class="fa-solid fa-play text-xs"></i>
-          <span>Re-Evaluate Agent</span>
+      <div class="flex flex-wrap items-center gap-3">
+        <span class="text-xs text-slate-600 flex items-center gap-1.5" id="phiBadge">
+          <i class="ph ph-lock-simple text-sky-700"></i>PHI is de-identified before any model call
+        </span>
+        <button onclick="generateDraft()" data-generate class="h-9 px-4 rounded-lg bg-sky-700 text-white font-semibold flex items-center gap-2 hover:bg-sky-800">
+          <i class="ph ph-file-text"></i>Generate draft
         </button>
       </div>
     </header>
 
-    <!-- Content Workspace -->
-    <div class="p-8 space-y-6">
+    <div class="px-4 md:px-8 py-6 max-w-[1400px] space-y-6">
+      <div id="loadError" role="alert" class="hidden rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800"></div>
 
-      <!-- PAGE 1: PATIENT CHART & VITALS -->
+      <!-- CHART -->
       <section id="page_chart" class="space-y-6">
-        <!-- Vitals Metric Cards -->
-        <div class="grid grid-cols-4 gap-4">
-          <div class="bg-white border border-clinical-border rounded-xl p-4 shadow-card">
-            <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
-              <span class="font-semibold uppercase tracking-wider text-[10px]">Blood Pressure</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800" id="bpStatusBadge">Stage 2 HTN</span>
-            </div>
-            <div class="text-2xl font-black text-slate-900" id="vitalBP">154/96 <span class="text-xs font-normal text-slate-500">mmHg</span></div>
-            <p class="text-[11px] text-slate-400 mt-1">Normal: &lt; 120/80 mmHg</p>
-          </div>
-
-          <div class="bg-white border border-clinical-border rounded-xl p-4 shadow-card">
-            <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
-              <span class="font-semibold uppercase tracking-wider text-[10px]">Heart Rate</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">Normal</span>
-            </div>
-            <div class="text-2xl font-black text-slate-900" id="vitalHR">78 <span class="text-xs font-normal text-slate-500">bpm</span></div>
-            <p class="text-[11px] text-slate-400 mt-1">Resting Sinus Rhythm</p>
-          </div>
-
-          <div class="bg-white border border-clinical-border rounded-xl p-4 shadow-card">
-            <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
-              <span class="font-semibold uppercase tracking-wider text-[10px]">eGFR (CKD-EPI)</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800" id="egfrBadge">Preserved</span>
-            </div>
-            <div class="text-2xl font-black text-slate-900" id="vitalEGFR">88 <span class="text-xs font-normal text-slate-500">mL/min</span></div>
-            <p class="text-[11px] text-slate-400 mt-1">Stage 1 Kidney Function</p>
-          </div>
-
-          <div class="bg-white border border-clinical-border rounded-xl p-4 shadow-card">
-            <div class="flex justify-between items-center text-xs text-slate-500 mb-1">
-              <span class="font-semibold uppercase tracking-wider text-[10px]">Hemoglobin A1c</span>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800" id="hba1cBadge">Target</span>
-            </div>
-            <div class="text-2xl font-black text-slate-900" id="vitalHBA1C">5.6 <span class="text-xs font-normal text-slate-500">%</span></div>
-            <p class="text-[11px] text-slate-400 mt-1">ADA Target: &lt; 7.0%</p>
-          </div>
+        <div class="bg-white rounded-lg border border-slate-200">
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold">Latest observations</h2>
+          <dl class="grid grid-cols-2 md:grid-cols-4 divide-x divide-slate-200" id="observations"></dl>
         </div>
-
-        <!-- Two Column Clinical Layout -->
-        <div class="grid grid-cols-2 gap-6">
-          <!-- Active Conditions & Diagnoses -->
-          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card">
-            <div class="flex items-center justify-between pb-3 mb-3 border-b border-clinical-border">
-              <h3 class="font-bold text-sm text-slate-900 flex items-center">
-                <i class="fa-solid fa-notes-medical text-sky-600 mr-2"></i> Active Problem List
-              </h3>
-              <span class="text-[11px] text-slate-400">ICD-10-CM Standard</span>
-            </div>
-            <div class="space-y-2.5" id="problemList">
-              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div>
-                  <p class="font-semibold text-xs text-slate-800">Essential (Primary) Hypertension</p>
-                  <p class="text-[11px] text-slate-500">Onset: 2021 • Stage 2 Uncontrolled</p>
-                </div>
-                <span class="mono px-2 py-0.5 text-xs font-bold rounded bg-slate-200 text-slate-700">I10</span>
-              </div>
-              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div>
-                  <p class="font-semibold text-xs text-slate-800">Hyperlipidemia, Unspecified</p>
-                  <p class="text-[11px] text-slate-500">Onset: 2019 • On Atorvastatin</p>
-                </div>
-                <span class="mono px-2 py-0.5 text-xs font-bold rounded bg-slate-200 text-slate-700">E78.5</span>
-              </div>
-            </div>
+        <div class="grid gap-6 lg:grid-cols-2">
+          <div class="bg-white rounded-lg border border-slate-200">
+            <h2 class="px-5 py-3 border-b border-slate-200 font-semibold">Problem list</h2>
+            <ul class="divide-y divide-slate-100" id="problemList"></ul>
           </div>
-
-          <!-- Active Prescriptions -->
-          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card">
-            <div class="flex items-center justify-between pb-3 mb-3 border-b border-clinical-border">
-              <h3 class="font-bold text-sm text-slate-900 flex items-center">
-                <i class="fa-solid fa-pills text-teal-600 mr-2"></i> Current Medications
-              </h3>
-              <span class="text-[11px] text-slate-400">RxNorm Mapped</span>
-            </div>
-            <div class="space-y-2.5" id="medicationList">
-              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div>
-                  <p class="font-semibold text-xs text-slate-800">Hydrochlorothiazide 25mg Tablet</p>
-                  <p class="text-[11px] text-slate-500">Oral • Once Daily Morning</p>
-                </div>
-                <span class="mono px-2 py-0.5 text-xs font-semibold rounded bg-teal-50 text-teal-700 border border-teal-200">RxNorm: 316049</span>
-              </div>
-              <div class="flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200">
-                <div>
-                  <p class="font-semibold text-xs text-slate-800">Atorvastatin Calcium 20mg Tablet</p>
-                  <p class="text-[11px] text-slate-500">Oral • Once Daily Evening</p>
-                </div>
-                <span class="mono px-2 py-0.5 text-xs font-semibold rounded bg-teal-50 text-teal-700 border border-teal-200">RxNorm: 259255</span>
-              </div>
-            </div>
+          <div class="bg-white rounded-lg border border-slate-200">
+            <h2 class="px-5 py-3 border-b border-slate-200 font-semibold">Active medications</h2>
+            <ul class="divide-y divide-slate-100" id="medicationList"></ul>
           </div>
         </div>
       </section>
 
-      <!-- PAGE 2: AMBIENT SOAP SCRIBE STUDIO -->
-      <section id="page_scribe" class="hidden space-y-6">
-        <div class="grid grid-cols-3 gap-6">
-          <!-- Ambient Audio / Transcript Panel -->
-          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card space-y-3">
-            <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
-              <h3 class="font-bold text-sm text-slate-900 flex items-center">
-                <i class="fa-solid fa-microphone text-sky-600 mr-2"></i> Ambient Clinical Audio
-              </h3>
-              <span class="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 text-emerald-800">Transcribed</span>
-            </div>
-            <div class="p-3 bg-slate-50 rounded-lg border border-slate-200 text-xs text-slate-700 leading-relaxed max-h-96 overflow-y-auto space-y-2" id="scribeTranscript">
-              <p><strong>Dr. Lin:</strong> "Good morning Eleanor. Looking at your home blood pressure logs, we are consistently seeing numbers in the 150s over 90s despite your hydrochlorothiazide."</p>
-              <p><strong>Patient:</strong> "Yes doctor, I've had some mild morning headaches. No chest pain or shortness of breath though."</p>
-              <p><strong>Dr. Lin:</strong> "Understood. Your kidney panel and potassium are completely normal. According to ACC/AHA guidelines, we need to add an ACE inhibitor like Lisinopril 10mg daily."</p>
-            </div>
+      <!-- SCRIBE -->
+      <section id="page_scribe" class="hidden grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start">
+        <div class="bg-white rounded-lg border border-slate-200">
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i class="ph ph-microphone text-sky-700"></i>Encounter transcript</h2>
+          <div class="p-5 space-y-3 leading-relaxed" id="transcript"></div>
+          <p class="px-5 pb-4 text-xs text-slate-500">Sample transcript. Names and identifiers are replaced with tokens before the scribe model sees it.</p>
+        </div>
+        <div class="bg-white rounded-lg border border-slate-200">
+          <div class="px-5 py-3 border-b border-slate-200 flex flex-wrap gap-2 items-center justify-between">
+            <h2 class="font-semibold flex items-center gap-2"><i class="ph ph-file-text text-sky-700"></i>SOAP draft</h2>
+            <span class="text-xs text-slate-500" id="draftMeta"></span>
           </div>
-
-          <!-- Structured SOAP Note Editor & Live Streaming Studio -->
-          <div class="col-span-2 bg-white border border-clinical-border rounded-xl p-5 shadow-card space-y-4">
-            <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
-              <div>
-                <h3 class="font-bold text-sm text-slate-900 flex items-center">
-                  <i class="fa-solid fa-file-medical text-teal-600 mr-2"></i> Generated Clinical SOAP Note
-                </h3>
-                <p class="text-[11px] text-slate-500">Gemini LLM Scribe • ICD-10 &amp; CPT Grounded</p>
-              </div>
-              <div class="flex items-center space-x-2">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600" id="soapStatusBadge">Ready</span>
-                <button onclick="streamSoapNote()" id="btnStreamSoap" class="px-3.5 py-1.5 rounded-lg bg-sky-600 text-white font-semibold text-xs hover:bg-sky-700 transition flex items-center space-x-1.5 shadow-sm">
-                  <i class="fa-solid fa-wand-magic-sparkles text-xs"></i>
-                  <span>Stream Live SOAP</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Live Streaming Markdown Display -->
-            <div id="renderedSoapNote" class="p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs text-slate-800 markdown-content min-h-64 max-h-[420px] overflow-y-auto">
-              <p class="text-slate-400 italic">Click "Stream Live SOAP" to synthesize ambient conversation and clinical findings into a structured note using Gemini with real-time streaming...</p>
-            </div>
-
-            <!-- Editable Fields for Physician Adjustment -->
-            <div class="space-y-3 text-xs pt-2 border-t border-slate-100" id="structuredFields">
-              <div class="flex justify-between items-center">
-                <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Physician Adjustments (Pre-Commit)</span>
-              </div>
-              <div class="grid grid-cols-2 gap-3">
-                <div>
-                  <label class="font-bold text-slate-700 uppercase tracking-wider text-[10px]">Assessment</label>
-                  <textarea id="soapAssessment" rows="2" class="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500">1. Stage 2 Essential Hypertension (ICD-10 I10) - Inadequate control on monotherapy.
-2. Hyperlipidemia (ICD-10 E78.5) - Stable on Atorvastatin.</textarea>
-                </div>
-                <div>
-                  <label class="font-bold text-slate-700 uppercase tracking-wider text-[10px]">Plan</label>
-                  <textarea id="soapPlan" rows="2" class="w-full mt-1 p-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500">1. Initiate Lisinopril 10mg PO Daily per ACC/AHA dual-therapy guidelines.
-2. Continue Hydrochlorothiazide 25mg PO Daily.
-3. Recheck BMP in 3 weeks.</textarea>
-                </div>
-              </div>
-            </div>
-          </div>
+          <div class="p-5 space-y-4" id="draftBody"></div>
         </div>
       </section>
 
-      <!-- PAGE 3: DRUG SAFETY & INTERACTION GUARDRAILS -->
+      <!-- SAFETY -->
       <section id="page_safety" class="hidden space-y-6">
-        <div class="bg-white border border-clinical-border rounded-xl p-6 shadow-card space-y-4">
-          <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
-            <div>
-              <h3 class="font-bold text-base text-slate-900 flex items-center">
-                <i class="fa-solid fa-shield-halved text-sky-600 mr-2"></i> Deterministic Pharmacological Safety Engine
-              </h3>
-              <p class="text-xs text-slate-500">Deterministic code-level checks running before LLM generation and EHR writeback.</p>
-            </div>
-            <span class="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200" id="safetySystemStatus">All Invariants Active</span>
-          </div>
-
-          <div id="safetyAlertContainer" class="space-y-3">
-            <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-start space-x-3">
-              <i class="fa-solid fa-circle-check text-emerald-600 text-lg mt-0.5"></i>
-              <div>
-                <h4 class="font-bold text-xs text-emerald-900">Safety Clearance: No Fatal Interactions Detected</h4>
-                <p class="text-xs text-emerald-800 mt-0.5">Hydrochlorothiazide + Lisinopril is a guideline-recommended synergistic combination for Stage 2 hypertension. Renal function (eGFR 88) is within safe parameters.</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-4 pt-2">
-            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Dual RAS Blockade Guard</span>
-              <p class="font-bold text-xs text-slate-800 mt-1">ACEi + ARB Combination</p>
-              <p class="text-[11px] text-slate-500 mt-1">Blocks concurrent Lisinopril + Losartan to prevent fatal hyperkalemia and acute renal failure.</p>
-            </div>
-
-            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Renal Cutoff Guard</span>
-              <p class="font-bold text-xs text-slate-800 mt-1">Metformin eGFR &lt; 30 mL/min</p>
-              <p class="text-[11px] text-slate-500 mt-1">Strict contraindication blocking Metformin in Stage 4/5 CKD to avoid lactic acidosis.</p>
-            </div>
-
-            <div class="p-4 rounded-lg bg-slate-50 border border-slate-200">
-              <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Electrolyte Safety Guard</span>
-              <p class="font-bold text-xs text-slate-800 mt-1">Hyperkalemia (K &gt; 5.2 mEq/L)</p>
-              <p class="text-[11px] text-slate-500 mt-1">Intercepts potassium-sparing diuretics and RAS inhibitors when serum potassium exceeds safe limits.</p>
-            </div>
-          </div>
+        <div class="bg-white rounded-lg border border-slate-200">
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold">Alerts for this patient</h2>
+          <div class="p-5 space-y-3" id="safetyAlerts"></div>
+        </div>
+        <div class="bg-white rounded-lg border border-slate-200">
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold">Rules checked in code before the scribe runs</h2>
+          <dl class="grid md:grid-cols-2 divide-y md:divide-y-0 divide-slate-200">
+            <div class="p-5 md:border-r md:border-b border-slate-200"><dt class="font-semibold">Drug interactions</dt><dd class="text-slate-600 mt-1">ACE inhibitor with ARB (dual RAS blockade). Beta blocker with diltiazem.</dd></div>
+            <div class="p-5 md:border-b border-slate-200"><dt class="font-semibold">Metformin and kidney function</dt><dd class="text-slate-600 mt-1">Critical below eGFR 30. Dose-reduction warning below eGFR 45.</dd></div>
+            <div class="p-5 md:border-r border-slate-200"><dt class="font-semibold">Potassium</dt><dd class="text-slate-600 mt-1">Critical at 5.5 mEq/L or above.</dd></div>
+            <div class="p-5"><dt class="font-semibold">Blood pressure</dt><dd class="text-slate-600 mt-1">Hypertensive crisis at 180 systolic or 120 diastolic.</dd></div>
+          </dl>
         </div>
       </section>
 
-      <!-- PAGE 4: CLINICAL PRACTICE GUIDELINES -->
-      <section id="page_guidelines" class="hidden space-y-6">
-        <div class="grid grid-cols-2 gap-6">
-          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card space-y-3">
-            <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
-              <h3 class="font-bold text-sm text-slate-900 flex items-center">
-                <i class="fa-solid fa-heart-pulse text-red-600 mr-2"></i> ACC/AHA 2017 Hypertension Standards
-              </h3>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800">Class I Recommendation</span>
-            </div>
-            <div class="space-y-3 text-xs text-slate-700">
-              <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                <p class="font-bold text-slate-900">Stage 2 Hypertension Definition</p>
-                <p class="text-slate-600 mt-0.5">Systolic ≥ 140 mmHg OR Diastolic ≥ 90 mmHg on repeated clinical measurements.</p>
-              </div>
-              <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                <p class="font-bold text-slate-900">Guideline Action: Dual First-Line Therapy</p>
-                <p class="text-slate-600 mt-0.5">Adults with Stage 2 hypertension and average BP &gt; 20/10 mmHg above target should be initiated on 2 first-line agents of different classes (e.g., CCB + ACEi/ARB or Thiazide + ACEi/ARB).</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="bg-white border border-clinical-border rounded-xl p-5 shadow-card space-y-3">
-            <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
-              <h3 class="font-bold text-sm text-slate-900 flex items-center">
-                <i class="fa-solid fa-dna text-teal-600 mr-2"></i> ADA 2026 Standards of Care in Diabetes
-              </h3>
-              <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800">Organ Protection</span>
-            </div>
-            <div class="space-y-3 text-xs text-slate-700">
-              <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                <p class="font-bold text-slate-900">Patients with Established CKD (eGFR &lt; 60)</p>
-                <p class="text-slate-600 mt-0.5">Recommend SGLT2 inhibitor (Empagliflozin / Dapagliflozin) or GLP-1 RA with proven renal protection independent of baseline HbA1c.</p>
-              </div>
-              <div class="p-3 rounded-lg bg-slate-50 border border-slate-200">
-                <p class="font-bold text-slate-900">Renal Metformin Discontinuation Threshold</p>
-                <p class="text-slate-600 mt-0.5">Metformin is strictly contraindicated when eGFR &lt; 30 mL/min/1.73m² due to elevated risk of fatal lactic acidosis.</p>
-              </div>
-            </div>
-          </div>
+      <!-- GUIDELINES -->
+      <section id="page_guidelines" class="hidden grid gap-6 lg:grid-cols-2 items-start">
+        <div class="bg-white rounded-lg border border-slate-200">
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i class="ph ph-heartbeat text-sky-700"></i>ACC/AHA 2017 hypertension</h2>
+          <dl class="divide-y divide-slate-100">
+            <div class="px-5 py-4"><dt class="font-semibold">Stage 2 hypertension</dt><dd class="text-slate-600 mt-1">Systolic 140 or above, or diastolic 90 or above, on repeated measurement.</dd></div>
+            <div class="px-5 py-4"><dt class="font-semibold">Two first-line agents</dt><dd class="text-slate-600 mt-1">When average BP is more than 20/10 mmHg above target, start two first-line agents from different classes.</dd></div>
+          </dl>
+        </div>
+        <div class="bg-white rounded-lg border border-slate-200">
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i class="ph ph-pill text-sky-700"></i>ADA Standards of Care in Diabetes</h2>
+          <dl class="divide-y divide-slate-100">
+            <div class="px-5 py-4"><dt class="font-semibold">Established CKD (eGFR below 60)</dt><dd class="text-slate-600 mt-1">Prefer an SGLT2 inhibitor or GLP-1 RA with proven kidney benefit, regardless of baseline HbA1c.</dd></div>
+            <div class="px-5 py-4"><dt class="font-semibold">Metformin cutoff</dt><dd class="text-slate-600 mt-1">Contraindicated when eGFR is below 30 mL/min/1.73m² because of lactic acidosis risk.</dd></div>
+          </dl>
         </div>
       </section>
 
-      <!-- PAGE 5: PHYSICIAN REVIEW & AUDIT TRAIL (HITL) -->
-      <section id="page_review" class="hidden space-y-6">
-        <div class="bg-white border border-clinical-border rounded-xl p-6 shadow-card space-y-5">
-          <div class="flex justify-between items-center pb-3 border-b border-clinical-border">
-            <div>
-              <h3 class="font-bold text-base text-slate-900 flex items-center">
-                <i class="fa-solid fa-signature text-sky-600 mr-2"></i> Physician Digital Review & EHR Commit Gate
-              </h3>
-              <p class="text-xs text-slate-500">LangGraph `interrupt()` checkpoint ensures human authorization prior to EHR persistence.</p>
-            </div>
-            <span class="px-2.5 py-1 rounded text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200" id="hitlGateStatus">Awaiting Physician Sign-Off</span>
+      <!-- SIGN-OFF -->
+      <section id="page_review" class="hidden">
+        <div class="bg-white rounded-lg border border-slate-200">
+          <div class="px-5 py-3 border-b border-slate-200 flex flex-wrap gap-2 items-center justify-between">
+            <h2 class="font-semibold flex items-center gap-2"><i class="ph ph-signature text-sky-700"></i>Physician sign-off</h2>
+            <span class="text-xs text-slate-500">The graph stays paused at <code class="font-mono">interrupt()</code> until you decide</span>
           </div>
-
-          <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3">
-            <h4 class="font-bold text-xs uppercase tracking-wider text-slate-500">Proposed EHR Commit Payload</h4>
-            <div class="mono text-xs bg-white p-3 rounded-lg border border-slate-200 text-slate-800 space-y-1">
-              <p><strong>Encounter ID:</strong> ENC-2026-90421</p>
-              <p><strong>Primary Diagnosis:</strong> I10 (Essential Hypertension)</p>
-              <p><strong>Prescription:</strong> Lisinopril 10mg PO Daily (RxNorm 314076)</p>
-              <p><strong>Billing CPT:</strong> 99214 (Level 4 Established Patient Evaluation)</p>
-            </div>
-          </div>
-
-          <div class="flex items-center justify-between pt-2">
-            <div class="text-xs text-slate-500">
-              <span class="font-semibold text-slate-700">Digital Signature:</span> Dr. Sarah Lin, MD (NPI: 1849204910)
-            </div>
-            <div class="flex space-x-3">
-              <button onclick="rejectEncounter()" class="px-4 py-2 rounded-lg border border-red-300 text-red-600 font-semibold text-xs hover:bg-red-50 transition">
-                Reject Note
-              </button>
-              <button onclick="approveEncounter()" id="btn-approve" class="px-5 py-2 rounded-lg bg-emerald-600 text-white font-bold text-xs hover:bg-emerald-700 transition shadow-sm flex items-center space-x-2">
-                <i class="fa-solid fa-check text-xs"></i>
-                <span>Approve & Commit to EHR</span>
-              </button>
-            </div>
-          </div>
-
-          <div id="ehrCommitBanner" class="hidden p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-              <i class="fa-solid fa-circle-check text-emerald-600 text-base"></i>
-              <span><strong>Encounter Committed:</strong> Note signed and persisted to HL7 FHIR v4 audit store at <span class="mono" id="commitTimestamp">2026-09-22 03:58:12</span>.</span>
-            </div>
-            <span class="mono px-2 py-0.5 rounded bg-emerald-200 text-emerald-900 font-bold text-[10px]">FHIR 200 OK</span>
-          </div>
+          <div class="p-5 space-y-5" id="reviewBody"></div>
         </div>
       </section>
-
     </div>
   </main>
 
   <script>
-    // Tab Routing
-    function switchTab(tabId) {
-      const tabs = ['chart', 'scribe', 'safety', 'guidelines', 'review'];
-      tabs.forEach(t => {
-        const page = document.getElementById('page_' + t);
-        const btn = document.getElementById('tab_' + t);
-        if (t === tabId) {
-          page.classList.remove('hidden');
-          btn.className = 'w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition bg-sky-50 text-sky-700 border border-sky-200 shadow-sm';
-          btn.querySelector('i').className = btn.querySelector('i').className.replace('text-slate-400', 'text-sky-600');
-        } else {
-          page.classList.add('hidden');
-          btn.className = 'w-full text-left px-3.5 py-2.5 rounded-lg text-xs font-semibold flex items-center space-x-3 transition text-slate-600 hover:bg-slate-50 hover:text-slate-900';
-          btn.querySelector('i').className = btn.querySelector('i').className.replace('text-sky-600', 'text-slate-400');
-        }
+    const TABS = ['chart', 'scribe', 'safety', 'guidelines', 'review'];
+    const state = { patients: [], active: null, bundles: {}, safety: {}, drafts: {}, tab: 'chart' };
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    async function api(path, options) {
+      const res = await fetch(path, options);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const detail = Array.isArray(body.detail) ? body.detail.map((d) => d.msg).join('; ') : body.detail;
+        throw Object.assign(new Error(detail || res.statusText), { status: res.status });
+      }
+      return body;
+    }
+
+    function age(birthDate) {
+      const b = new Date(birthDate), now = new Date();
+      return now.getFullYear() - b.getFullYear() - (now < new Date(now.getFullYear(), b.getMonth(), b.getDate()) ? 1 : 0);
+    }
+    const date = (iso) => (iso ? new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '');
+
+    // ---------- navigation ----------
+    function switchTab(tab) {
+      state.tab = tab;
+      TABS.forEach((t) => $('page_' + t).classList.toggle('hidden', t !== tab));
+      document.querySelectorAll('#tabs button').forEach((b) => {
+        const on = b.dataset.tab === tab;
+        b.className = 'h-9 px-3 rounded-lg flex items-center gap-2 whitespace-nowrap font-medium ' +
+          (on ? 'bg-sky-50 text-sky-800' : 'text-slate-600 hover:bg-slate-100');
+        b.setAttribute('aria-current', on ? 'page' : 'false');
+        b.onclick = () => switchTab(b.dataset.tab);
       });
     }
 
-    let currentPatientId = 'pat-001';
-    let activeSoapEventSource = null;
-
-    // Scenarios
-    function selectScenario(scenario) {
-      const btnH = document.getElementById('btn_hypertension');
-      const btnD = document.getElementById('btn_dual_ras');
-      const btnC = document.getElementById('btn_ckd');
-
-      btnH.className = 'p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300';
-      btnD.className = 'p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300';
-      btnC.className = 'p-2.5 rounded-lg border border-slate-200 bg-white cursor-pointer transition hover:border-slate-300';
-
-      const alertContainer = document.getElementById('safetyAlertContainer');
-
-      if (scenario === 'hypertension') {
-        currentPatientId = 'pat-001';
-        btnH.className = 'p-2.5 rounded-lg border border-sky-300 bg-sky-50/50 cursor-pointer transition hover:border-sky-400';
-        document.getElementById('patientName').innerText = 'Eleanor Vance';
-        document.getElementById('patientDemographics').innerText = '62 yo Female • DOB: 1964-03-12';
-        document.getElementById('patientMRN').innerText = 'MRN-90421';
-        document.getElementById('vitalBP').innerHTML = '154/96 <span class="text-xs font-normal text-slate-500">mmHg</span>';
-        document.getElementById('vitalEGFR').innerHTML = '88 <span class="text-xs font-normal text-slate-500">mL/min</span>';
-        document.getElementById('vitalHBA1C').innerHTML = '5.6 <span class="text-xs font-normal text-slate-500">%</span>';
-        alertContainer.innerHTML = `
-          <div class="p-4 rounded-xl border border-emerald-200 bg-emerald-50/50 flex items-start space-x-3">
-            <i class="fa-solid fa-circle-check text-emerald-600 text-lg mt-0.5"></i>
-            <div>
-              <h4 class="font-bold text-xs text-emerald-900">Safety Clearance: No Fatal Interactions Detected</h4>
-              <p class="text-xs text-emerald-800 mt-0.5">Hydrochlorothiazide + Lisinopril is a guideline-recommended synergistic combination for Stage 2 hypertension. Renal function (eGFR 88) is within safe parameters.</p>
-            </div>
-          </div>`;
-      } else if (scenario === 'dual_ras') {
-        currentPatientId = 'pat-002';
-        btnD.className = 'p-2.5 rounded-lg border border-red-300 bg-red-50/50 cursor-pointer transition hover:border-red-400';
-        document.getElementById('patientName').innerText = 'Robert Chen';
-        document.getElementById('patientDemographics').innerText = '58 yo Male • DOB: 1968-11-04';
-        document.getElementById('patientMRN').innerText = 'MRN-83109';
-        document.getElementById('vitalBP').innerHTML = '148/92 <span class="text-xs font-normal text-slate-500">mmHg</span>';
-        document.getElementById('vitalEGFR').innerHTML = '48 <span class="text-xs font-normal text-slate-500">mL/min</span>';
-        document.getElementById('vitalHBA1C').innerHTML = '6.1 <span class="text-xs font-normal text-slate-500">%</span>';
-        alertContainer.innerHTML = `
-          <div class="p-4 rounded-xl border border-red-300 bg-red-50 flex items-start space-x-3">
-            <i class="fa-solid fa-triangle-exclamation text-red-600 text-lg mt-0.5"></i>
-            <div>
-              <h4 class="font-bold text-xs text-red-900">CRITICAL SAFETY INVARIANT VIOLATION: DUAL RAS BLOCKADE</h4>
-              <p class="text-xs text-red-800 mt-0.5">Concurrent prescription of Lisinopril (ACE inhibitor) and Losartan (ARB) detected. Dual renin-angiotensin blockade is strictly contraindicated due to severe risks of acute renal failure, hyperkalemia, and profound hypotension.</p>
-              <p class="text-xs font-bold text-red-900 mt-1">Action: Execution halted. One RAS blocker must be discontinued immediately.</p>
-            </div>
-          </div>`;
-      } else if (scenario === 'ckd') {
-        currentPatientId = 'pat-003';
-        btnC.className = 'p-2.5 rounded-lg border border-purple-300 bg-purple-50/50 cursor-pointer transition hover:border-purple-400';
-        document.getElementById('patientName').innerText = 'Marcus Holloway';
-        document.getElementById('patientDemographics').innerText = '71 yo Male • DOB: 1955-08-19';
-        document.getElementById('patientMRN').innerText = 'MRN-77412';
-        document.getElementById('vitalBP').innerHTML = '138/84 <span class="text-xs font-normal text-slate-500">mmHg</span>';
-        document.getElementById('vitalEGFR').innerHTML = '26 <span class="text-xs font-normal text-slate-500">mL/min</span>';
-        document.getElementById('vitalHBA1C').innerHTML = '8.4 <span class="text-xs font-normal text-slate-500">%</span>';
-        alertContainer.innerHTML = `
-          <div class="p-4 rounded-xl border border-amber-300 bg-amber-50 flex items-start space-x-3">
-            <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg mt-0.5"></i>
-            <div>
-              <h4 class="font-bold text-xs text-amber-900">CONTRAINDICATION: METFORMIN IN STAGE 4 CKD (eGFR 26)</h4>
-              <p class="text-xs text-amber-800 mt-0.5">Metformin is strictly contraindicated when eGFR &lt; 30 mL/min/1.73m² due to the life-threatening risk of lactic acidosis. Per ADA 2026 guidelines, transition patient to an SGLT2i or GLP-1 RA.</p>
-            </div>
-          </div>`;
+    // ---------- data ----------
+    async function init() {
+      api('/health').then((h) => ($('modelName').textContent = h.model)).catch(() => ($('modelName').textContent = 'unavailable'));
+      try {
+        state.patients = await api('/api/patients');
+      } catch (err) {
+        return showLoadError('Could not load patients: ' + err.message);
       }
+      await selectPatient(state.patients[0].id);
     }
 
-    function streamSoapNote() {
-      switchTab('scribe');
-      const renderedContainer = document.getElementById('renderedSoapNote');
-      const statusBadge = document.getElementById('soapStatusBadge');
+    function showLoadError(message) {
+      $('loadError').textContent = message;
+      $('loadError').classList.remove('hidden');
+    }
 
-      renderedContainer.innerHTML = '<span class="cursor-blink text-sky-600 font-semibold">CareFlow AI synthesizing clinical encounter with Gemini...</span>';
-      statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-700 animate-pulse';
-      statusBadge.innerText = 'Streaming...';
-
-      if (activeSoapEventSource) {
-        activeSoapEventSource.close();
-      }
-
-      let accumulatedMarkdown = '';
-      const evtSource = new EventSource('/api/encounters/' + currentPatientId + '/stream');
-      activeSoapEventSource = evtSource;
-
-      evtSource.addEventListener('alerts', (e) => {
-        const alerts = JSON.parse(e.data);
-        if (alerts.length > 0) {
-          const alertContainer = document.getElementById('safetyAlertContainer');
-          let html = '';
-          alerts.forEach(a => {
-            const isCrit = a.severity === 'CRITICAL';
-            html += `
-              <div class="p-4 rounded-xl border ${isCrit ? 'border-red-300 bg-red-50' : 'border-amber-300 bg-amber-50'} flex items-start space-x-3 mb-2">
-                <i class="fa-solid fa-triangle-exclamation ${isCrit ? 'text-red-600' : 'text-amber-600'} text-lg mt-0.5"></i>
-                <div>
-                  <h4 class="font-bold text-xs ${isCrit ? 'text-red-900' : 'text-amber-900'}">[${a.severity}] ${a.title}</h4>
-                  <p class="text-xs ${isCrit ? 'text-red-800' : 'text-amber-800'} mt-0.5">${a.action_required}</p>
-                </div>
-              </div>`;
-          });
-          alertContainer.innerHTML = html;
+    async function selectPatient(id) {
+      state.active = id;
+      renderPatientList();
+      try {
+        if (!state.bundles[id]) {
+          const [bundle, safety] = await Promise.all([api(`/api/patients/${id}`), api(`/api/patients/${id}/safety`)]);
+          state.bundles[id] = bundle;
+          state.safety[id] = safety.alerts;
         }
-      });
+      } catch (err) {
+        return showLoadError(`Could not load patient ${id}: ${err.message}`);
+      }
+      if (state.active !== id) return;
+      renderHeader();
+      renderChart();
+      renderTranscript();
+      renderAlerts($('safetyAlerts'), state.safety[id]);
+      renderDraft();
+      renderReview();
+    }
 
-      evtSource.addEventListener('chunk', (e) => {
-        const data = JSON.parse(e.data);
-        accumulatedMarkdown += data.text;
-        renderedContainer.innerHTML = marked.parse(accumulatedMarkdown);
-      });
+    // ---------- renderers ----------
+    const SEVERITY = {
+      CRITICAL: { box: 'border-red-300 bg-red-50 text-red-900', chip: 'bg-red-100 text-red-800', icon: 'ph-warning' },
+      WARNING: { box: 'border-amber-300 bg-amber-50 text-amber-900', chip: 'bg-amber-100 text-amber-800', icon: 'ph-warning' },
+    };
 
-      evtSource.addEventListener('complete', (e) => {
-        evtSource.close();
-        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800';
-        statusBadge.innerText = 'SOAP Note Generated';
-      });
+    function renderPatientList() {
+      $('patientList').innerHTML = state.patients.map((p) => {
+        const on = p.id === state.active;
+        const sev = SEVERITY[p.max_severity];
+        return `
+          <button onclick="selectPatient('${esc(p.id)}')" aria-pressed="${on}"
+            class="shrink-0 w-56 lg:w-full text-left px-3 py-2.5 rounded-lg border ${on ? 'border-sky-300 bg-sky-50' : 'border-transparent hover:bg-slate-50'}">
+            <span class="flex items-center justify-between gap-2">
+              <span class="font-semibold">${esc(p.name)}</span>
+              ${sev ? `<span class="px-1.5 py-0.5 rounded-lg text-[11px] font-semibold ${sev.chip}">${p.alert_count} alert${p.alert_count > 1 ? 's' : ''}</span>` : ''}
+            </span>
+            <span class="block text-xs text-slate-500 truncate">${esc(p.primary_condition)}</span>
+          </button>`;
+      }).join('');
+    }
 
-      evtSource.onerror = (err) => {
-        console.error('SSE SOAP error:', err);
-        evtSource.close();
-        statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-200 text-slate-700';
-        statusBadge.innerText = 'Ready';
+    function renderHeader() {
+      const b = state.bundles[state.active];
+      const p = b.patient;
+      const allergies = b.allergies.length ? b.allergies.map((a) => `${a.substance} (${a.reaction.toLowerCase()})`).join(', ') : 'No known allergies';
+      $('patientHeader').innerHTML = `
+        <h1 class="text-xl font-semibold">${esc(p.name)}</h1>
+        <p class="text-slate-600 flex flex-wrap gap-x-4 gap-y-1 mt-0.5">
+          <span>${age(p.birthDate)} y, ${esc(p.gender)}</span>
+          <span>DOB ${esc(p.birthDate)}</span>
+          <span class="font-mono">${esc(p.mrn)}</span>
+          <span class="${b.allergies.length ? 'text-red-700 font-semibold' : ''}">${esc(allergies)}</span>
+        </p>`;
+      updatePhiBadge();
+    }
+
+    function updatePhiBadge() {
+      const d = state.drafts[state.active];
+      $('phiBadge').innerHTML = d && d.redaction_count != null
+        ? `<i class="ph ph-lock-simple text-sky-700"></i>${d.redaction_count} identifiers replaced before the model call`
+        : '<i class="ph ph-lock-simple text-sky-700"></i>PHI is de-identified before any model call';
+    }
+
+    function renderChart() {
+      const b = state.bundles[state.active];
+      $('observations').innerHTML = b.observations.map((o) => `
+        <div class="px-5 py-4">
+          <dt class="text-xs text-slate-500">${esc(o.display)}</dt>
+          <dd class="text-2xl font-semibold font-mono mt-1">${esc(o.value)} <span class="text-xs font-sans font-normal text-slate-500">${esc(o.unit)}</span></dd>
+          <dd class="text-xs text-slate-500 mt-1">Reference ${esc(o.reference_range)}, ${date(o.effectiveDateTime)}</dd>
+        </div>`).join('');
+      $('problemList').innerHTML = b.conditions.map((c) => `
+        <li class="px-5 py-3 flex items-center justify-between gap-4">
+          <span><span class="font-medium">${esc(c.code.display)}</span><span class="block text-xs text-slate-500">Since ${date(c.onsetDateTime)}</span></span>
+          <span class="font-mono text-xs px-2 py-1 rounded-lg bg-slate-100">${esc(c.code.code)}</span>
+        </li>`).join('') || '<li class="px-5 py-3 text-slate-500">No active problems.</li>';
+      $('medicationList').innerHTML = b.medications.map((m) => `
+        <li class="px-5 py-3"><span class="font-medium">${esc(m.medication)}</span><span class="block text-xs text-slate-500">${esc(m.dosage)}, since ${date(m.authoredOn)}</span></li>`
+      ).join('') || '<li class="px-5 py-3 text-slate-500">No active medications.</li>';
+    }
+
+    function renderTranscript() {
+      const lines = state.bundles[state.active].encounter_transcript || [];
+      $('transcript').innerHTML = lines.map((l) => `
+        <p><span class="font-semibold ${l.speaker === 'Clinician' ? 'text-sky-800' : ''}">${esc(l.speaker)}</span><br />${esc(l.text)}</p>`
+      ).join('') || '<p class="text-slate-500">No transcript for this encounter.</p>';
+    }
+
+    function renderAlerts(el, alerts) {
+      el.innerHTML = alerts.length ? alerts.map((a) => {
+        const s = SEVERITY[a.severity] || SEVERITY.WARNING;
+        return `
+          <div class="rounded-lg border px-4 py-3 ${s.box}">
+            <p class="font-semibold flex items-center gap-2"><i class="ph ${s.icon}"></i>${esc(a.title)}</p>
+            <p class="mt-1">${esc(a.description)}</p>
+            <p class="mt-1 font-semibold">${esc(a.action_required)}</p>
+          </div>`;
+      }).join('') : '<p class="text-slate-600 flex items-center gap-2"><i class="ph ph-check-circle text-emerald-700"></i>No rule violations for this patient\'s current medications and labs.</p>';
+    }
+
+    const FIELDS = [
+      ['subjective', 'Subjective', 3],
+      ['objective', 'Objective', 3],
+      ['assessment', 'Assessment', 3],
+      ['plan', 'Plan (one item per line)', 4],
+    ];
+
+    function renderDraft() {
+      const d = state.drafts[state.active];
+      const body = $('draftBody');
+      $('draftMeta').textContent = '';
+      if (!d) {
+        body.innerHTML = '<p class="text-slate-600">No draft yet. Use <strong>Generate draft</strong> to run the pipeline: de-identify, apply guidelines, run safety checks, then draft the note with Gemini.</p>';
+        return;
+      }
+      if (d.status === 'generating') {
+        body.innerHTML = FIELDS.map(() => '<div class="space-y-2"><div class="skeleton h-3 w-24"></div><div class="skeleton h-16 w-full"></div></div>').join('');
+        $('draftMeta').textContent = 'Running the graph';
+        return;
+      }
+      if (d.status === 'error') {
+        body.innerHTML = `
+          <div role="alert" class="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800 flex flex-wrap gap-3 items-center justify-between">
+            <span class="flex items-center gap-2"><i class="ph ph-warning"></i>${esc(d.error)}</span>
+            ${d.retryable ? '<button onclick="generateDraft()" data-generate class="h-8 px-3 rounded-lg border border-red-300 bg-white font-semibold flex items-center gap-1"><i class="ph ph-arrow-clockwise"></i>Retry</button>' : ''}
+          </div>`;
+        return;
+      }
+      const locked = d.status !== 'awaiting';
+      const soap = d.soap;
+      $('draftMeta').textContent = locked ? `Signed off: ${d.result.status.toLowerCase()}` : `Session ${d.session_id}`;
+      body.innerHTML = FIELDS.map(([key, label, rows]) => `
+        <div class="grid gap-1.5">
+          <label for="f_${key}" class="font-semibold">${label}</label>
+          <textarea id="f_${key}" rows="${rows}" ${locked ? 'readonly' : ''}
+            class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 leading-relaxed ${locked ? 'bg-slate-50 text-slate-700' : ''}">${esc(key === 'plan' ? soap.plan.join('\n') : soap[key])}</textarea>
+        </div>`).join('') + `
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="grid gap-1.5"><label for="f_icd10_codes" class="font-semibold">ICD-10 codes</label>
+            <input id="f_icd10_codes" ${locked ? 'readonly' : ''} value="${esc(soap.icd10_codes.join(', '))}" class="h-9 rounded-lg border border-slate-300 px-3 font-mono" /></div>
+          <div class="grid gap-1.5"><label for="f_cpt_codes" class="font-semibold">CPT codes</label>
+            <input id="f_cpt_codes" ${locked ? 'readonly' : ''} value="${esc(soap.cpt_codes.join(', '))}" class="h-9 rounded-lg border border-slate-300 px-3 font-mono" /></div>
+        </div>
+        <details class="rounded-lg border border-slate-200 px-4 py-3">
+          <summary class="cursor-pointer font-semibold">Guideline findings passed to the scribe (${d.findings.length})</summary>
+          <ul class="list-disc ml-5 mt-2 space-y-1 text-slate-600">${d.findings.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
+        </details>
+        ${locked ? '' : '<button onclick="switchTab(\'review\')" class="h-9 px-4 rounded-lg border border-sky-700 text-sky-800 font-semibold hover:bg-sky-50">Continue to sign-off</button>'}`;
+    }
+
+    function readEdits(d) {
+      const list = (v, sep) => v.split(sep).map((x) => x.trim()).filter(Boolean);
+      const current = {
+        subjective: $('f_subjective').value.trim(),
+        objective: $('f_objective').value.trim(),
+        assessment: $('f_assessment').value.trim(),
+        plan: list($('f_plan').value, '\n'),
+        icd10_codes: list($('f_icd10_codes').value, ','),
+        cpt_codes: list($('f_cpt_codes').value, ','),
       };
+      return Object.fromEntries(Object.entries(current).filter(([k, v]) => JSON.stringify(v) !== JSON.stringify(Array.isArray(d.soap[k]) ? d.soap[k] : String(d.soap[k]).trim())));
     }
 
-    function approveEncounter() {
-      document.getElementById('hitlGateStatus').className = 'px-2.5 py-1 rounded text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200';
-      document.getElementById('hitlGateStatus').innerText = 'Physician Signed & Approved';
-      document.getElementById('ehrCommitBanner').classList.remove('hidden');
+    function renderReview() {
+      const d = state.drafts[state.active];
+      const body = $('reviewBody');
+      if (!d || d.status === 'generating' || d.status === 'error') {
+        body.innerHTML = '<p class="text-slate-600">Nothing to sign yet. Generate a draft first, then review and edit it on the Scribe tab.</p>';
+        return;
+      }
+      if (d.status === 'awaiting' || d.status === 'signing') {
+        body.innerHTML = `
+          <dl class="grid md:grid-cols-3 gap-4">
+            <div><dt class="text-xs text-slate-500">Session</dt><dd class="font-mono">${esc(d.session_id)}</dd></div>
+            <div><dt class="text-xs text-slate-500">Codes</dt><dd class="font-mono">${esc([...d.soap.icd10_codes, ...d.soap.cpt_codes].join(', '))}</dd></div>
+            <div><dt class="text-xs text-slate-500">Safety alerts shown to the scribe</dt><dd>${d.alerts.length}</dd></div>
+          </dl>
+          <div><p class="text-xs text-slate-500">Assessment</p><p class="mt-1 whitespace-pre-line">${esc(d.soap.assessment)}</p></div>
+          ${d.alerts.length ? `<div class="space-y-2" id="reviewAlerts"></div>` : ''}
+          <div class="grid gap-1.5 max-w-[65ch]">
+            <label for="signNotes" class="font-semibold">Sign-off notes</label>
+            <textarea id="signNotes" rows="2" maxlength="2000" class="rounded-lg border border-slate-300 px-3 py-2"></textarea>
+            <p class="text-xs text-slate-500">Edits made on the Scribe tab are sent with your signature.</p>
+          </div>
+          <div class="flex flex-wrap gap-3">
+            <button onclick="signOff(false)" data-sign class="h-9 px-4 rounded-lg border border-red-300 text-red-700 font-semibold hover:bg-red-50">Reject draft</button>
+            <button onclick="signOff(true)" data-sign class="h-9 px-4 rounded-lg bg-sky-700 text-white font-semibold hover:bg-sky-800 flex items-center gap-2"><i class="ph ph-seal-check"></i>Sign and commit</button>
+          </div>
+          <p id="signError" role="alert" class="hidden text-red-700"></p>`;
+        if (d.alerts.length) renderAlerts($('reviewAlerts'), d.alerts);
+        body.querySelectorAll('[data-sign]').forEach((b) => (b.disabled = d.status === 'signing'));
+        return;
+      }
+      const ok = d.result.ehr_committed;
+      body.innerHTML = `
+        <div class="rounded-lg border px-4 py-3 ${ok ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-slate-300 bg-slate-50 text-slate-800'}">
+          <p class="font-semibold flex items-center gap-2"><i class="ph ${ok ? 'ph-check-circle' : 'ph-x-circle'}"></i>
+            ${ok ? `Signed (${d.result.status.toLowerCase()}) and committed` : 'Draft rejected. Nothing was committed.'} at ${esc(d.signedAt)}.</p>
+          <p class="mt-1 text-sm">Returned by the graph's writeback node after <code class="font-mono">Command(resume=...)</code>. Demo only: no external EHR is called.</p>
+        </div>
+        <button onclick="generateDraft()" data-generate class="h-9 px-4 rounded-lg border border-slate-300 font-semibold hover:bg-slate-50">Start a new draft</button>`;
     }
 
-    function rejectEncounter() {
-      alert('Encounter note rejected by physician. Checkpoint recorded in EHR audit log.');
+    // ---------- actions ----------
+    function setGenerating(on) {
+      document.querySelectorAll('[data-generate]').forEach((b) => (b.disabled = on));
     }
 
-    function runCareflowWorkflow() {
-      streamSoapNote();
+    async function generateDraft() {
+      const id = state.active;
+      if (!id || state.drafts[id]?.status === 'generating') return;
+      state.drafts[id] = { status: 'generating' };
+      switchTab('scribe');
+      renderDraft();
+      renderReview();
+      updatePhiBadge();
+      setGenerating(true);
+      try {
+        const res = await api('/api/consult', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ patient_id: id }),
+        });
+        state.drafts[id] = {
+          status: 'awaiting',
+          session_id: res.session_id,
+          soap: res.state.soap_note,
+          alerts: res.state.safety_alerts,
+          findings: res.state.clinical_findings,
+          redaction_count: res.state.redaction_count,
+        };
+      } catch (err) {
+        state.drafts[id] = { status: 'error', error: err.message, retryable: [429, 503].includes(err.status) };
+      } finally {
+        setGenerating(false);
+      }
+      if (state.active === id) {
+        renderDraft();
+        renderReview();
+        updatePhiBadge();
+      }
     }
+
+    async function signOff(approve) {
+      const id = state.active;
+      const d = state.drafts[id];
+      if (!d || d.status !== 'awaiting') return;
+      const edits = approve ? readEdits(d) : {};
+      const action = !approve ? 'reject' : Object.keys(edits).length ? 'edit' : 'approve';
+      const notes = $('signNotes').value.trim();
+      d.status = 'signing';
+      renderReview();
+      try {
+        d.result = await api(`/api/consult/${d.session_id}/resume`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action, edits, notes }),
+        });
+        d.status = 'signed';
+        d.soap = d.result.final_soap;
+        d.signedAt = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+      } catch (err) {
+        if (err.status === 404 || err.status === 409) {
+          delete state.drafts[id];
+          renderDraft();
+          renderReview();
+          $('reviewBody').insertAdjacentHTML('beforeend', `<p role="alert" class="text-red-700">${esc(err.message)}</p>`);
+          return;
+        }
+        d.status = 'awaiting';
+        renderReview();
+        $('signError').textContent = err.message;
+        $('signError').classList.remove('hidden');
+        return;
+      }
+      renderReview();
+      renderDraft();
+    }
+
+    switchTab('chart');
+    init();
   </script>
 </body>
 </html>

@@ -12,7 +12,7 @@
 Clinical documentation overhead is a primary driver of physician burnout, with ambulatory clinicians spending significant daily time navigating Electronic Health Record (EHR) interfaces and drafting clinical encounter notes. While Large Language Models (LLMs) provide strong summarization capabilities, deploying unconstrained generative models in clinical settings introduces patient safety risks, such as hallucinated pharmacotherapy, failure to intercept drug-drug contraindications, and potential disclosure of Protected Health Information (PHI).
 
 **CareFlow** addresses these challenges by separating probabilistic generation from deterministic safety and governance:
-1. **Clinical Reasoning & Scribing**: Uses Gemini 3.8 Flash to extract structured SOAP (Subjective, Objective, Assessment, Plan) notes and map diagnosis codes (ICD-10) and billing codes (CPT).
+1. **Clinical Reasoning & Scribing**: Uses Gemini 3.6 Flash to extract structured SOAP (Subjective, Objective, Assessment, Plan) notes and map diagnosis codes (ICD-10) and billing codes (CPT).
 2. **Deterministic Safety Invariants**: Code-level validation rules that physically intercept dangerous drug-drug interactions (e.g. dual RAS blockade) and organ-function contraindications (e.g. Metformin in advanced CKD) prior to model generation and EHR persistence.
 3. **HIPAA Safe Harbor 18 De-Identification**: Bidirectional tokenizer that strips all 18 HIPAA identifiers before external model calls and rehydrates verified text locally.
 4. **Human-in-the-Loop (HITL) Review Gate**: Built on LangGraph state machines with durable checkpoints, ensuring no clinical note or order is committed to the EHR without explicit physician review and digital sign-off.
@@ -40,7 +40,7 @@ flowchart TD
         DeID["2. HIPAA PHI De-ID Vault (Safe Harbor 18)"]
         Skills["3. Clinical Skills RAG (ACC/AHA & ADA)"]
         Safety["4. Deterministic Safety Guard (Code Invariants)"]
-        Scribe["5. SOAP Scribe & ICD-10 Coding (Gemini 3.8 Flash)"]
+        Scribe["5. SOAP Scribe & ICD-10 Coding (Gemini 3.6 Flash)"]
         Gate["6. Physician Review Gate (interrupt() Checkpoint)"]
         Writeback["7. EHR Writeback Node (Command(resume))"]
     end
