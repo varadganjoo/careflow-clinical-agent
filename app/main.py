@@ -19,7 +19,7 @@ from langgraph.types import Command
 
 from app.fhir import FHIRBundle
 from app.graph import build_clinical_graph, EncounterState
-from app.llm import DEFAULT_MODEL, describe_llm_error, stream_soap_synthesis
+from app.llm import DEFAULT_MODEL, MODEL_CHAIN, describe_llm_error, stream_soap_synthesis
 from app.phi_vault import PHIVault
 from app.safety import check_safety_invariants
 from skills.hypertension_acc_aha.rules import classify_blood_pressure
@@ -108,6 +108,7 @@ def health() -> dict:
     return {
         "status": "healthy",
         "model": DEFAULT_MODEL,
+        "models": MODEL_CHAIN,
         "active_sessions": len(active_sessions),
         "checkpointer": "MemorySaver",
     }
