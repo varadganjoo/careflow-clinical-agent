@@ -37,8 +37,8 @@ def get_gemini_client():
         from google import genai
         from google.genai import types
 
-        # Free-tier Gemini sheds load with 503s and per-minute 429s; back off and retry transient failures.
-        retry = types.HttpRetryOptions(attempts=4, initial_delay=2.0, max_delay=10.0, http_status_codes=[429, 503])
+        # Retry 503 load-shedding only; 429 means the free-tier RPM quota is spent and retrying just burns more of it.
+        retry = types.HttpRetryOptions(attempts=4, initial_delay=2.0, max_delay=10.0, http_status_codes=[503])
         return genai.Client(api_key=api_key, http_options=types.HttpOptions(retry_options=retry))
     except Exception as exc:
         logger.warning(f"Failed to initialize google-genai client: {exc}")
