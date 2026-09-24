@@ -200,7 +200,7 @@
 
     // ---------- data ----------
     async function init() {
-      api('/health').then((h) => ($('modelName').textContent = (h.models || [h.model]).map((m) => m.replace('gemini-', '')).join(', '))).catch(() => ($('modelName').textContent = 'unavailable'));
+      api('/health').then((h) => ($('modelName').textContent = 'Gemini ' + (h.models || [h.model]).map((m) => m.replace('gemini-', '').replace('-flash', '')).join(', ') + (h.backup ? ', then ' + h.backup.replace('groq/openai/', 'Groq ') : ''))).catch(() => ($('modelName').textContent = 'unavailable'));
       try {
         state.patients = await api('/api/patients');
       } catch (err) {
