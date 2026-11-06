@@ -36,7 +36,7 @@
 
   <aside class="lg:w-72 lg:h-[100dvh] lg:sticky lg:top-0 shrink-0 bg-white border-b lg:border-b-0 lg:border-r border-slate-200 flex flex-col">
     <div class="px-5 h-16 flex items-center gap-3 border-b border-slate-200">
-      <i class="ph ph-first-aid-kit text-2xl text-sky-700"></i>
+      <i aria-hidden="true" class="ph ph-first-aid-kit text-2xl text-sky-700"></i>
       <div>
         <p class="font-semibold leading-tight">CareFlow</p>
         <p class="text-xs text-slate-500">Demo clinic, sample patients</p>
@@ -44,11 +44,11 @@
     </div>
 
     <nav class="p-3 flex lg:flex-col gap-1 overflow-x-auto" id="tabs" aria-label="Workspace">
-      <button data-tab="chart"><i class="ph ph-identification-card"></i>Chart</button>
-      <button data-tab="scribe"><i class="ph ph-microphone"></i>Scribe</button>
-      <button data-tab="safety"><i class="ph ph-shield-check"></i>Safety checks</button>
-      <button data-tab="guidelines"><i class="ph ph-book-open"></i>Guidelines</button>
-      <button data-tab="review"><i class="ph ph-signature"></i>Sign-off</button>
+      <button data-tab="chart"><i aria-hidden="true" class="ph ph-identification-card"></i>Chart</button>
+      <button data-tab="scribe"><i aria-hidden="true" class="ph ph-microphone"></i>Scribe</button>
+      <button data-tab="safety"><i aria-hidden="true" class="ph ph-shield-check"></i>Safety checks</button>
+      <button data-tab="guidelines"><i aria-hidden="true" class="ph ph-book-open"></i>Guidelines</button>
+      <button data-tab="review"><i aria-hidden="true" class="ph ph-signature"></i>Sign-off</button>
     </nav>
 
     <div class="px-3 pb-3 lg:flex-1 lg:overflow-y-auto">
@@ -70,10 +70,10 @@
       </div>
       <div class="flex flex-wrap items-center gap-3">
         <span class="text-xs text-slate-600 flex items-center gap-1.5" id="phiBadge">
-          <i class="ph ph-lock-simple text-sky-700"></i>PHI is de-identified before any model call
+          <i aria-hidden="true" class="ph ph-lock-simple text-sky-700"></i>PHI is de-identified before any model call
         </span>
         <button onclick="generateDraft()" data-generate class="h-9 px-4 rounded-lg bg-sky-700 text-white font-semibold flex items-center gap-2 hover:bg-sky-800">
-          <i class="ph ph-file-text"></i>Generate draft
+          <i aria-hidden="true" class="ph ph-file-text"></i>Generate draft
         </button>
       </div>
     </header>
@@ -102,13 +102,19 @@
       <!-- SCRIBE -->
       <section id="page_scribe" class="hidden grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] items-start">
         <div class="bg-white rounded-lg border border-slate-200">
-          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i class="ph ph-microphone text-sky-700"></i>Encounter transcript</h2>
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i aria-hidden="true" class="ph ph-microphone text-sky-700"></i>Encounter transcript</h2>
           <div class="p-5 space-y-3 leading-relaxed" id="transcript"></div>
           <p class="px-5 pb-4 text-xs text-slate-500">Sample transcript. Names and identifiers are replaced with tokens before the scribe model sees it.</p>
+          <div class="px-5 pb-5 grid gap-1.5">
+            <label for="encounterNotes" class="font-semibold">Additional encounter notes</label>
+            <textarea id="encounterNotes" rows="3" maxlength="2000" aria-describedby="encounterNotesHint"
+              class="w-full rounded-lg border border-slate-300 px-3 py-2"></textarea>
+            <p id="encounterNotesHint" class="text-xs text-slate-500">Included in the next draft after de-identification. Use fictional patient data only.</p>
+          </div>
         </div>
         <div class="bg-white rounded-lg border border-slate-200">
           <div class="px-5 py-3 border-b border-slate-200 flex flex-wrap gap-2 items-center justify-between">
-            <h2 class="font-semibold flex items-center gap-2"><i class="ph ph-file-text text-sky-700"></i>SOAP draft</h2>
+            <h2 class="font-semibold flex items-center gap-2"><i aria-hidden="true" class="ph ph-file-text text-sky-700"></i>SOAP draft</h2>
             <span class="text-xs text-slate-500" id="draftMeta"></span>
           </div>
           <div class="p-5 space-y-4" id="draftBody"></div>
@@ -135,14 +141,14 @@
       <!-- GUIDELINES -->
       <section id="page_guidelines" class="hidden grid gap-6 lg:grid-cols-2 items-start">
         <div class="bg-white rounded-lg border border-slate-200">
-          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i class="ph ph-heartbeat text-sky-700"></i>ACC/AHA 2017 hypertension</h2>
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i aria-hidden="true" class="ph ph-heartbeat text-sky-700"></i>ACC/AHA 2017 hypertension</h2>
           <dl class="divide-y divide-slate-100">
             <div class="px-5 py-4"><dt class="font-semibold">Stage 2 hypertension</dt><dd class="text-slate-600 mt-1">Systolic 140 or above, or diastolic 90 or above, on repeated measurement.</dd></div>
             <div class="px-5 py-4"><dt class="font-semibold">Two first-line agents</dt><dd class="text-slate-600 mt-1">When average BP is more than 20/10 mmHg above target, start two first-line agents from different classes.</dd></div>
           </dl>
         </div>
         <div class="bg-white rounded-lg border border-slate-200">
-          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i class="ph ph-pill text-sky-700"></i>ADA Standards of Care in Diabetes</h2>
+          <h2 class="px-5 py-3 border-b border-slate-200 font-semibold flex items-center gap-2"><i aria-hidden="true" class="ph ph-pill text-sky-700"></i>ADA Standards of Care in Diabetes</h2>
           <dl class="divide-y divide-slate-100">
             <div class="px-5 py-4"><dt class="font-semibold">Established CKD (eGFR below 60)</dt><dd class="text-slate-600 mt-1">Prefer an SGLT2 inhibitor or GLP-1 RA with proven kidney benefit, regardless of baseline HbA1c.</dd></div>
             <div class="px-5 py-4"><dt class="font-semibold">Metformin cutoff</dt><dd class="text-slate-600 mt-1">Contraindicated when eGFR is below 30 mL/min/1.73m² because of lactic acidosis risk.</dd></div>
@@ -154,8 +160,8 @@
       <section id="page_review" class="hidden">
         <div class="bg-white rounded-lg border border-slate-200">
           <div class="px-5 py-3 border-b border-slate-200 flex flex-wrap gap-2 items-center justify-between">
-            <h2 class="font-semibold flex items-center gap-2"><i class="ph ph-signature text-sky-700"></i>Physician sign-off</h2>
-            <span class="text-xs text-slate-500">The graph stays paused at <code class="font-mono">interrupt()</code> until you decide</span>
+            <h2 class="font-semibold flex items-center gap-2"><i aria-hidden="true" class="ph ph-signature text-sky-700"></i>Physician sign-off</h2>
+            <span class="text-xs text-slate-500">Every draft requires an explicit review decision</span>
           </div>
           <div class="p-5 space-y-5" id="reviewBody"></div>
         </div>
@@ -165,7 +171,7 @@
 
   <script>
     const TABS = ['chart', 'scribe', 'safety', 'guidelines', 'review'];
-    const state = { patients: [], active: null, bundles: {}, safety: {}, drafts: {}, tab: 'chart' };
+    const state = { patients: [], active: null, bundles: {}, safety: {}, drafts: {}, encounterNotes: {}, tab: 'chart' };
     const $ = (id) => document.getElementById(id);
     const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -188,6 +194,7 @@
     // ---------- navigation ----------
     function switchTab(tab) {
       state.tab = tab;
+      if (tab === 'review') renderReview();
       TABS.forEach((t) => $('page_' + t).classList.toggle('hidden', t !== tab));
       document.querySelectorAll('#tabs button').forEach((b) => {
         const on = b.dataset.tab === tab;
@@ -216,6 +223,7 @@
 
     async function selectPatient(id) {
       state.active = id;
+      setGenerating(true);
       renderPatientList();
       try {
         if (!state.bundles[id]) {
@@ -227,12 +235,14 @@
         return showLoadError(`Could not load patient ${id}: ${err.message}`);
       }
       if (state.active !== id) return;
+      $('loadError').classList.add('hidden');
       renderHeader();
       renderChart();
       renderTranscript();
       renderAlerts($('safetyAlerts'), state.safety[id]);
       renderDraft();
       renderReview();
+      setGenerating(state.drafts[id]?.status === 'generating' || state.drafts[id]?.status === 'signing');
     }
 
     // ---------- renderers ----------
@@ -275,8 +285,8 @@
     function updatePhiBadge() {
       const d = state.drafts[state.active];
       $('phiBadge').innerHTML = d && d.redaction_count != null
-        ? `<i class="ph ph-lock-simple text-sky-700"></i>${d.redaction_count} identifiers replaced before the model call`
-        : '<i class="ph ph-lock-simple text-sky-700"></i>PHI is de-identified before any model call';
+        ? `<i aria-hidden="true" class="ph ph-lock-simple text-sky-700"></i>${d.redaction_count} identifiers replaced before the model call`
+        : '<i aria-hidden="true" class="ph ph-lock-simple text-sky-700"></i>PHI is de-identified before any model call';
     }
 
     function renderChart() {
@@ -298,6 +308,9 @@
     }
 
     function renderTranscript() {
+      const id = state.active;
+      $('encounterNotes').value = state.encounterNotes[id] || '';
+      $('encounterNotes').oninput = (event) => { state.encounterNotes[id] = event.target.value; };
       const lines = state.bundles[state.active].encounter_transcript || [];
       $('transcript').innerHTML = lines.map((l) => `
         <p><span class="font-semibold ${l.speaker === 'Clinician' ? 'text-sky-800' : ''}">${esc(l.speaker)}</span><br />${esc(l.text)}</p>`
@@ -309,11 +322,11 @@
         const s = SEVERITY[a.severity] || SEVERITY.WARNING;
         return `
           <div class="rounded-lg border px-4 py-3 ${s.box}">
-            <p class="font-semibold flex items-center gap-2"><i class="ph ${s.icon}"></i>${esc(a.title)}</p>
+            <p class="font-semibold flex items-center gap-2"><i aria-hidden="true" class="ph ${s.icon}"></i>${esc(a.title)}</p>
             <p class="mt-1">${esc(a.description)}</p>
             <p class="mt-1 font-semibold">${esc(a.action_required)}</p>
           </div>`;
-      }).join('') : '<p class="text-slate-600 flex items-center gap-2"><i class="ph ph-check-circle text-emerald-700"></i>No rule violations for this patient\'s current medications and labs.</p>';
+      }).join('') : '<p class="text-slate-600 flex items-center gap-2"><i aria-hidden="true" class="ph ph-check-circle text-emerald-700"></i>No rule violations for this patient\'s current medications and labs.</p>';
     }
 
     const FIELDS = [
@@ -339,18 +352,18 @@
       if (d.status === 'error') {
         body.innerHTML = `
           <div role="alert" class="rounded-lg border border-red-300 bg-red-50 px-4 py-3 text-red-800 flex flex-wrap gap-3 items-center justify-between">
-            <span class="flex items-center gap-2"><i class="ph ph-warning"></i>${esc(d.error)}</span>
-            ${d.retryable ? '<button onclick="generateDraft()" data-generate class="h-8 px-3 rounded-lg border border-red-300 bg-white font-semibold flex items-center gap-1"><i class="ph ph-arrow-clockwise"></i>Retry</button>' : ''}
+            <span class="flex items-center gap-2"><i aria-hidden="true" class="ph ph-warning"></i>${esc(d.error)}</span>
+            ${d.retryable ? '<button onclick="generateDraft()" data-generate class="h-8 px-3 rounded-lg border border-red-300 bg-white font-semibold flex items-center gap-1"><i aria-hidden="true" class="ph ph-arrow-clockwise"></i>Retry</button>' : ''}
           </div>`;
         return;
       }
       const locked = d.status !== 'awaiting';
-      const soap = d.soap;
-      $('draftMeta').textContent = locked ? `Signed off: ${d.result.status.toLowerCase()}` : `Session ${d.session_id}`;
+      const soap = { ...d.soap, ...d.edits };
+      $('draftMeta').textContent = d.status === 'signed' ? `Signed off: ${d.result.status.toLowerCase()}` : `Session ${d.session_id}`;
       body.innerHTML = FIELDS.map(([key, label, rows]) => `
         <div class="grid gap-1.5">
           <label for="f_${key}" class="font-semibold">${label}</label>
-          <textarea id="f_${key}" rows="${rows}" ${locked ? 'readonly' : ''}
+          <textarea id="f_${key}" rows="${rows}" maxlength="5000" ${locked ? 'readonly' : ''}
             class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 leading-relaxed ${locked ? 'bg-slate-50 text-slate-700' : ''}">${esc(key === 'plan' ? soap.plan.join('\n') : soap[key])}</textarea>
         </div>`).join('') + `
         <div class="grid sm:grid-cols-2 gap-4">
@@ -364,6 +377,7 @@
           <ul class="list-disc ml-5 mt-2 space-y-1 text-slate-600">${d.findings.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>
         </details>
         ${locked ? '' : '<button onclick="switchTab(\'review\')" class="h-9 px-4 rounded-lg border border-sky-700 text-sky-800 font-semibold hover:bg-sky-50">Continue to sign-off</button>'}`;
+      body.oninput = () => { if (d.status === 'awaiting') d.edits = readEdits(d); };
     }
 
     function readEdits(d) {
@@ -387,35 +401,47 @@
         return;
       }
       if (d.status === 'awaiting' || d.status === 'signing') {
+        const soap = { ...d.soap, ...d.edits };
+        const critical = d.alerts.filter((a) => a.severity === 'CRITICAL');
         body.innerHTML = `
           <dl class="grid md:grid-cols-3 gap-4">
             <div><dt class="text-xs text-slate-500">Session</dt><dd class="font-mono">${esc(d.session_id)}</dd></div>
-            <div><dt class="text-xs text-slate-500">Codes</dt><dd class="font-mono">${esc([...d.soap.icd10_codes, ...d.soap.cpt_codes].join(', '))}</dd></div>
+            <div><dt class="text-xs text-slate-500">Codes</dt><dd class="font-mono">${esc([...soap.icd10_codes, ...soap.cpt_codes].join(', '))}</dd></div>
             <div><dt class="text-xs text-slate-500">Safety alerts shown to the scribe</dt><dd>${d.alerts.length}</dd></div>
           </dl>
-          <div><p class="text-xs text-slate-500">Assessment</p><p class="mt-1 whitespace-pre-line">${esc(d.soap.assessment)}</p></div>
+          <div><p class="text-xs text-slate-500">Assessment</p><p class="mt-1 whitespace-pre-line">${esc(soap.assessment)}</p></div>
+          ${Object.keys(d.edits || {}).length ? `<p class="text-sky-800">Edited fields: ${esc(Object.keys(d.edits).join(', '))}. These changes will be recorded in the review receipt.</p>` : ''}
           ${d.alerts.length ? `<div class="space-y-2" id="reviewAlerts"></div>` : ''}
+          ${critical.length ? `<label class="flex items-start gap-2 rounded-lg border border-red-300 bg-red-50 px-4 py-3">
+            <input id="ackCritical" type="checkbox" ${d.acknowledged ? 'checked' : ''} ${d.status === 'signing' ? 'disabled' : ''}
+              class="mt-1" />
+            <span>I reviewed all ${critical.length} critical alerts and will document my rationale below. Acknowledgement does not resolve the alerts.</span>
+          </label>` : ''}
           <div class="grid gap-1.5 max-w-[65ch]">
-            <label for="signNotes" class="font-semibold">Sign-off notes</label>
-            <textarea id="signNotes" rows="2" maxlength="2000" class="rounded-lg border border-slate-300 px-3 py-2"></textarea>
-            <p class="text-xs text-slate-500">Edits made on the Scribe tab are sent with your signature.</p>
+            <label for="signNotes" class="font-semibold">Sign-off notes${critical.length ? ' (rationale required to commit)' : ''}</label>
+            <textarea id="signNotes" rows="2" maxlength="2000" aria-describedby="signNotesHint" ${d.status === 'signing' ? 'readonly' : ''}
+              class="rounded-lg border border-slate-300 px-3 py-2">${esc(d.notes || '')}</textarea>
+            <p id="signNotesHint" class="text-xs text-slate-500">${critical.length ? 'Explain how you addressed the critical alerts. You can reject without acknowledgement.' : 'Edits made on the Scribe tab are sent with your decision.'}</p>
           </div>
           <div class="flex flex-wrap gap-3">
             <button onclick="signOff(false)" data-sign class="h-9 px-4 rounded-lg border border-red-300 text-red-700 font-semibold hover:bg-red-50">Reject draft</button>
-            <button onclick="signOff(true)" data-sign class="h-9 px-4 rounded-lg bg-sky-700 text-white font-semibold hover:bg-sky-800 flex items-center gap-2"><i class="ph ph-seal-check"></i>Sign and commit</button>
+            <button onclick="signOff(true)" data-sign class="h-9 px-4 rounded-lg bg-sky-700 text-white font-semibold hover:bg-sky-800 flex items-center gap-2"><i aria-hidden="true" class="ph ph-seal-check"></i>Sign and commit</button>
           </div>
           <p id="signError" role="alert" class="hidden text-red-700"></p>`;
         if (d.alerts.length) renderAlerts($('reviewAlerts'), d.alerts);
+        if ($('ackCritical')) $('ackCritical').onchange = (event) => { d.acknowledged = event.target.checked; };
+        $('signNotes').oninput = (event) => { d.notes = event.target.value; };
         body.querySelectorAll('[data-sign]').forEach((b) => (b.disabled = d.status === 'signing'));
         return;
       }
       const ok = d.result.ehr_committed;
       body.innerHTML = `
         <div class="rounded-lg border px-4 py-3 ${ok ? 'border-emerald-300 bg-emerald-50 text-emerald-900' : 'border-slate-300 bg-slate-50 text-slate-800'}">
-          <p class="font-semibold flex items-center gap-2"><i class="ph ${ok ? 'ph-check-circle' : 'ph-x-circle'}"></i>
+          <p class="font-semibold flex items-center gap-2"><i aria-hidden="true" class="ph ${ok ? 'ph-check-circle' : 'ph-x-circle'}"></i>
             ${ok ? `Signed (${d.result.status.toLowerCase()}) and committed` : 'Draft rejected. Nothing was committed.'} at ${esc(d.signedAt)}.</p>
-          <p class="mt-1 text-sm">Returned by the graph's writeback node after <code class="font-mono">Command(resume=...)</code>. Demo only: no external EHR is called.</p>
+          <p class="mt-1 text-sm">Demo only: no external EHR is called. The receipt records this decision and any changes; it is not an authenticated clinical signature.</p>
         </div>
+        <a href="/api/consult/${encodeURIComponent(d.session_id)}/review" download class="inline-flex items-center h-9 px-4 rounded-lg border border-sky-700 text-sky-800 font-semibold">Download review receipt</a>
         <button onclick="generateDraft()" data-generate class="h-9 px-4 rounded-lg border border-slate-300 font-semibold hover:bg-slate-50">Start a new draft</button>`;
     }
 
@@ -426,7 +452,7 @@
 
     async function generateDraft() {
       const id = state.active;
-      if (!id || state.drafts[id]?.status === 'generating') return;
+      if (!id || !state.bundles[id] || ['generating', 'signing'].includes(state.drafts[id]?.status)) return;
       state.drafts[id] = { status: 'generating' };
       switchTab('scribe');
       renderDraft();
@@ -437,7 +463,7 @@
         const res = await api('/api/consult', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ patient_id: id }),
+          body: JSON.stringify({ patient_id: id, notes: state.encounterNotes[id] || '' }),
         });
         state.drafts[id] = {
           status: 'awaiting',
@@ -463,21 +489,30 @@
       const id = state.active;
       const d = state.drafts[id];
       if (!d || d.status !== 'awaiting') return;
-      const edits = approve ? readEdits(d) : {};
+      const edits = approve ? (d.edits || {}) : {};
       const action = !approve ? 'reject' : Object.keys(edits).length ? 'edit' : 'approve';
-      const notes = $('signNotes').value.trim();
+      const notes = (d.notes || '').trim();
+      if (approve && d.alerts.some((a) => a.severity === 'CRITICAL') && (!d.acknowledged || !notes)) {
+        $('signError').textContent = 'Acknowledge critical alerts and record a sign-off rationale before committing.';
+        $('signError').classList.remove('hidden');
+        (!d.acknowledged ? $('ackCritical') : $('signNotes')).focus();
+        return;
+      }
       d.status = 'signing';
       renderReview();
       try {
         d.result = await api(`/api/consult/${d.session_id}/resume`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, edits, notes }),
+          body: JSON.stringify({ action, edits, notes, acknowledge_critical_alerts: !!d.acknowledged }),
         });
         d.status = 'signed';
         d.soap = d.result.final_soap;
-        d.signedAt = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+        d.edits = {};
+        d.signedAt = new Date(d.result.review_receipt.reviewed_at).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
       } catch (err) {
+        d.status = 'awaiting';
+        if (state.active !== id) return;
         if (err.status === 404 || err.status === 409) {
           delete state.drafts[id];
           renderDraft();
@@ -485,14 +520,15 @@
           $('reviewBody').insertAdjacentHTML('beforeend', `<p role="alert" class="text-red-700">${esc(err.message)}</p>`);
           return;
         }
-        d.status = 'awaiting';
         renderReview();
         $('signError').textContent = err.message;
         $('signError').classList.remove('hidden');
         return;
       }
-      renderReview();
-      renderDraft();
+      if (state.active === id) {
+        renderReview();
+        renderDraft();
+      }
     }
 
     switchTab('chart');

@@ -52,6 +52,18 @@ Summaries of the ACC/AHA 2017 hypertension and ADA diabetes rules that the guide
 ### 5. Physician Sign-off (LangGraph HITL)
 The graph pauses at LangGraph's `interrupt()`. Signing sends approve (or edit, if any field changed) and rejecting sends reject via `Command(resume=...)`; only approved or edited notes reach the writeback node. The demo has no external EHR.
 
+Critical alerts now require an explicit acknowledgement and a sign-off rationale
+before a draft can be committed. Rejection remains available without either.
+The server and the graph both enforce this rule. Every decision produces a
+downloadable JSON review receipt with its UTC time, rationale, acknowledged
+critical alerts and the actual before/after changes. Receipts are demo workflow
+records, not authenticated clinical signatures.
+
+SOAP edits, additional encounter notes and review inputs stay with their patient
+when switching charts. Additional encounter notes are de-identified before the
+scribe receives them. This work stays in page memory; reloading closes the local
+editing context, and restarting the server loses encounters and receipts.
+
 ![Physician sign-off](docs/images/04_signoff.png)
 
 ---
@@ -144,7 +156,7 @@ git clone https://github.com/varadganjoo/careflow-clinical-agent.git
 cd careflow-clinical-agent
 python -m venv .venv
 .\.venv\Scripts\activate
-pip install -r requirements.txt
+pip install -r requirements.lock
 cp .env.example .env
 ```
 
@@ -177,6 +189,23 @@ python -m pytest tests/ -v
 ```
 
 Covers FHIR parsing, the safety rules, de-identification (including names inside transcripts), the LangGraph interrupt/resume lifecycle, the HTTP API (sign-off validation and error handling), the MCP server, and the Gemini and Groq fallback chain. CI runs the suite on every push (badge above).
+
+Optional rendered desktop/mobile tests use a deterministic test scribe and the
+real local API, without calling a paid model:
+
+```powershell
+pip install playwright==1.64.1
+python -m playwright install chromium
+$env:CAREFLOW_BROWSER_TESTS = "1"
+python -m pytest tests/test_workstation.py -v
+```
+
+CI also runs these browser journeys and checks `requirements.lock` against current
+dependency advisories. The lockfile pins the existing dependencies across supported
+platforms. To refresh it, run `uv pip compile requirements.txt --universal
+--python-version 3.11 --output-file requirements.lock`, then rerun the tests and
+dependency audit. See [improvement scope and release evidence](docs/IMPROVEMENTS.md)
+for the checks performed and the remaining demo limitations.
 
 ---
 

@@ -8,11 +8,12 @@ import json
 import logging
 import uuid
 from pathlib import Path
-from typing import Iterator, Literal
+from threading import Lock
+from typing import Iterator
 
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import FastAPI, HTTPException, Response
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from pydantic import BaseModel, Field
 
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
@@ -21,6 +22,7 @@ from app.fhir import FHIRBundle
 from app.graph import build_clinical_graph, EncounterState
 from app.llm import DEFAULT_MODEL, GROQ_MODEL, MODEL_CHAIN, _groq_configured, describe_llm_error, stream_soap_synthesis
 from app.phi_vault import PHIVault
+from app.review import ResumeRequest
 from app.safety import check_safety_invariants
 from skills.hypertension_acc_aha.rules import classify_blood_pressure
 from skills.diabetes_ada_standards.rules import assess_glycemic_control
@@ -51,25 +53,6 @@ SEVERITY_RANK = {"CRITICAL": 2, "WARNING": 1}
 class ConsultRequest(BaseModel):
     patient_id: str = Field(..., max_length=32, description="Patient ID e.g. pat-001, pat-002, pat-003")
     notes: str = Field("", max_length=2000, description="Optional encounter notes or clinician observations")
-
-
-class SOAPEdits(BaseModel):
-    """Physician edits may only touch SOAP note fields; anything else is rejected."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    subjective: str | None = Field(None, max_length=5000)
-    objective: str | None = Field(None, max_length=5000)
-    assessment: str | None = Field(None, max_length=5000)
-    plan: list[str] | None = Field(None, max_length=30)
-    icd10_codes: list[str] | None = Field(None, max_length=30)
-    cpt_codes: list[str] | None = Field(None, max_length=30)
-
-
-class ResumeRequest(BaseModel):
-    action: Literal["approve", "edit", "reject"] = "approve"
-    edits: SOAPEdits = Field(default_factory=SOAPEdits, description="Updated SOAP fields if action is 'edit'")
-    notes: str = Field("", max_length=2000, description="Physician clinical notes or rationale")
 
 
 def _get_patient_bundle(patient_id: str) -> dict:
@@ -220,7 +203,7 @@ def stream_encounter_endpoint(patient_id: str):
 @app.post("/api/consult")
 def start_consultation(body: ConsultRequest) -> dict:
     bundle_data = _get_patient_bundle(body.patient_id)
-    session_id = f"enc-{uuid.uuid4().hex[:8]}"
+    session_id = f"enc-{uuid.uuid4().hex}"
 
     initial_state: EncounterState = {
         "session_id": session_id,
@@ -252,7 +235,7 @@ def start_consultation(body: ConsultRequest) -> dict:
     interrupt_value = state_snapshot.tasks[0].interrupts[0].value if is_interrupted else None
     status = "AWAITING_PHYSICIAN_REVIEW" if is_interrupted else "COMPLETED"
 
-    active_sessions[session_id] = {"patient_id": body.patient_id, "thread_id": session_id, "status": status}
+    active_sessions[session_id] = {"patient_id": body.patient_id, "thread_id": session_id, "status": status, "lock": Lock()}
     values = state_snapshot.values
     return {
         "session_id": session_id,
@@ -278,24 +261,18 @@ def resume_consultation(session_id: str, body: ResumeRequest) -> dict:
         )
 
     config = {"configurable": {"thread_id": session_id}}
-    state_snapshot = graph.get_state(config)
-
-    if not state_snapshot.tasks or not state_snapshot.tasks[0].interrupts:
-        raise HTTPException(status_code=409, detail="This encounter has already been signed or rejected.")
-
-    edits = body.edits.model_dump(exclude_none=True)
-    if body.action == "edit" and not edits:
-        raise HTTPException(status_code=422, detail="Action 'edit' requires at least one edited SOAP field.")
-
-    resume_payload = {
-        "action": body.action,
-        "edits": edits,
-        "notes": body.notes,
-    }
-
-    graph.invoke(Command(resume=resume_payload), config=config)
-    final_state = graph.get_state(config)
-    active_sessions[session_id]["status"] = final_state.values.get("physician_status", "COMPLETED")
+    # ASVS 2.3.4: serialize check-and-resume so two HTTP decisions cannot both commit.
+    with active_sessions[session_id]["lock"]:
+        state_snapshot = graph.get_state(config)
+        if not state_snapshot.tasks or not state_snapshot.tasks[0].interrupts:
+            raise HTTPException(status_code=409, detail="This encounter has already been signed or rejected.")
+        try:
+            body.validate_alerts(state_snapshot.values.get("safety_alerts", []))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+        graph.invoke(Command(resume=body.model_dump()), config=config)
+        final_state = graph.get_state(config)
+        active_sessions[session_id]["status"] = final_state.values.get("physician_status", "COMPLETED")
 
     return {
         "session_id": session_id,
@@ -303,18 +280,41 @@ def resume_consultation(session_id: str, body: ResumeRequest) -> dict:
         "ehr_committed": final_state.values.get("ehr_committed", False),
         "final_soap": final_state.values.get("soap_note"),
         "physician_notes": final_state.values.get("physician_notes"),
+        "review_receipt": final_state.values.get("review_receipt"),
     }
 
 
 @app.get("/api/consult/{session_id}/status")
-def get_consult_status(session_id: str) -> dict:
+def get_consult_status(session_id: str, response: Response) -> dict:
     if session_id not in active_sessions:
         raise HTTPException(status_code=404, detail=f"Session {session_id} not found.")
 
     config = {"configurable": {"thread_id": session_id}}
     state_snapshot = graph.get_state(config)
+    response.headers["Cache-Control"] = "no-store"
     return {
         "session_id": session_id,
         "next_nodes": list(state_snapshot.next),
-        "values": state_snapshot.values,
+        "values": {key: state_snapshot.values.get(key) for key in (
+            "patient_id", "soap_note", "safety_alerts", "clinical_findings",
+            "physician_status", "ehr_committed", "review_receipt",
+        )},
     }
+
+
+@app.get("/api/consult/{session_id}/review")
+def get_review_receipt(session_id: str) -> JSONResponse:
+    if session_id not in active_sessions:
+        raise HTTPException(status_code=404, detail="Encounter not found; the server may have restarted.")
+    values = graph.get_state({"configurable": {"thread_id": session_id}}).values
+    if not values.get("review_receipt"):
+        raise HTTPException(status_code=409, detail="Review this draft before downloading a receipt.")
+    return JSONResponse({
+        "session_id": session_id,
+        "patient_id": values["patient_id"],
+        "status": values["physician_status"],
+        "ehr_committed": values["ehr_committed"],
+        "final_soap": values["soap_note"],
+        "review_receipt": values["review_receipt"],
+        "demo_notice": "Fictional-patient demo. This receipt is not an authenticated clinical signature.",
+    }, headers={"Cache-Control": "no-store", "Content-Disposition": f'attachment; filename="{session_id}-review.json"'})
